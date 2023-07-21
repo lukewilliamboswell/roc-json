@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "firstname": "Jeanette",
+    "lastname": "Penddreth",
+    "email": "jpenddreth0@census.gov",
+    "gender": "Female",
+    "ipaddress": "26.58.193.2"
+  }, 
+  {
+    "id": 2,
+    "firstname": "Giavani",
+    "lastname": "Frediani",
+    "email": "gfrediani1@senate.gov",
+    "gender": "Male",
+    "ipaddress": "229.179.4.212"
+  }, 
+  {
+    "id": 3,
+    "firstname": "Noell",
+    "lastname": "Bea",
+    "email": "nbea2@imageshack.us",
+    "gender": "Female",
+    "ipaddress": "180.66.162.255"
+  }, 
+  {
+    "id": 4,
+    "firstname": "Willard",
+    "lastname": "Valek",
+    "email": "wvalek3@vk.com",
+    "gender": "Male",
+    "ipaddress": "67.76.188.26"
+  }
+]  
