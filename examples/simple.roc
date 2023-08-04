@@ -1,7 +1,7 @@
 app "example"
     packages {
         cli: "https://github.com/roc-lang/basic-cli/releases/download/0.3.2/tE4xS_zLdmmxmHwHih9kHWQ7fsXtJr7W7h3425-eZFk.tar.br",
-        json: "../package/main.roc",
+        json: "https://github.com/lukewilliamboswell/roc-json/releases/download/0.2.0/gh4zvR8xyEsef0R961Fcv5vxFEZJ-GJF-7bQwgL2Xz8.tar.br",
     }
     imports [
         cli.Stdout,
