@@ -46,7 +46,7 @@ interface Core
 
 ## An opaque type with the `EncoderFormatting` and
 ## `DecoderFormatting` abilities.
-Json := { fieldNameMapping : FieldNameMapping }
+Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties: Bool }
      has [
          EncoderFormatting {
              u8: encodeU8,
@@ -92,11 +92,14 @@ Json := { fieldNameMapping : FieldNameMapping }
      ]
 
 ## Returns a JSON `Encoder` and `Decoder`
-json = @Json { fieldNameMapping: Default }
+json = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true }
 
 ## Returns a JSON `Encoder` and `Decoder` with configuration options
-jsonWithOptions = \{ fieldNameMapping ? Default } ->
-    @Json { fieldNameMapping }
+## 
+## `skipMissingProperties` - if `True` the decoder will skip additional properties
+## in the json that are not present in the model. (Default: `True`)
+jsonWithOptions = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true } ->
+    @Json { fieldNameMapping, skipMissingProperties }
 
 ## Mapping between Roc record fields and JSON object names
 FieldNameMapping : [
@@ -280,9 +283,9 @@ expect
     actual == expected
 
 encodeList = \lst, encodeElem ->
-    Encode.custom \bytes, @Json { fieldNameMapping } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
         writeList = \{ buffer, elemsLeft }, elem ->
-            bufferWithElem = appendWith buffer (encodeElem elem) (@Json { fieldNameMapping })
+            bufferWithElem = appendWith buffer (encodeElem elem) (@Json { fieldNameMapping, skipMissingProperties })
             bufferWithSuffix =
                 if elemsLeft > 1 then
                     List.append bufferWithElem (Num.toU8 ',')
@@ -306,7 +309,7 @@ expect
     actual == expected
 
 encodeRecord = \fields ->
-    Encode.custom \bytes, @Json { fieldNameMapping } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
         writeRecord = \{ buffer, fieldsLeft }, { key, value } ->
 
             fieldName = toObjectNameUsingMap key fieldNameMapping
@@ -316,7 +319,7 @@ encodeRecord = \fields ->
                 |> List.concat (Str.toUtf8 fieldName)
                 |> List.append (Num.toU8 '"')
                 |> List.append (Num.toU8 ':') # Note we need to encode using the json config here
-                |> appendWith value (@Json { fieldNameMapping })
+                |> appendWith value (@Json { fieldNameMapping, skipMissingProperties })
 
             bufferWithSuffix =
                 if fieldsLeft > 1 then
@@ -373,10 +376,10 @@ toYellingCase = \str ->
     |> Str.joinWith ""
 
 encodeTuple = \elems ->
-    Encode.custom \bytes, @Json { fieldNameMapping } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
         writeTuple = \{ buffer, elemsLeft }, elemEncoder ->
             bufferWithElem =
-                appendWith buffer elemEncoder (@Json { fieldNameMapping })
+                appendWith buffer elemEncoder (@Json { fieldNameMapping, skipMissingProperties })
 
             bufferWithSuffix =
                 if elemsLeft > 1 then
@@ -400,10 +403,10 @@ expect
     actual == expected
 
 encodeTag = \name, payload ->
-    Encode.custom \bytes, @Json { fieldNameMapping } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
         # Idea: encode `A v1 v2` as `{"A": [v1, v2]}`
         writePayload = \{ buffer, itemsLeft }, encoder ->
-            bufferWithValue = appendWith buffer encoder (@Json { fieldNameMapping })
+            bufferWithValue = appendWith buffer encoder (@Json { fieldNameMapping, skipMissingProperties })
             bufferWithSuffix =
                 if itemsLeft > 1 then
                     List.append bufferWithValue (Num.toU8 ',')
@@ -1326,7 +1329,7 @@ expect
 
 # JSON OBJECTS -----------------------------------------------------------------
 
-decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Json { fieldNameMapping } ->
+decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
 
         # Recursively build up record from object field:value pairs
         decodeFields = \recordState, bytesBeforeField ->
@@ -1357,17 +1360,25 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                                 fromObjectNameUsingMap objectName fieldNameMapping
 
                             # Retrieve value decoder for the current field
-                            when stepField recordState fieldName is
-                                Skip ->
-                                    # TODO This doesn't seem right, shouldn't we eat
-                                    # the remaining json object value bytes if we are skipping this
-                                    # field?
+                            when (stepField recordState fieldName, skipMissingProperties) is
+                                (Skip, shouldSkip) if shouldSkip == Bool.true ->
+                                    # Count the bytes until the field value
+                                    countBytesBeforeNextField =
+                                        when List.walkUntil valueBytes (FieldValue 0) skipFieldHelp is
+                                            FieldValueEnd n -> n
+                                            _ -> 0
+
+                                    dropedValueBytes = List.drop valueBytes countBytesBeforeNextField
+
+                                    { result: Ok recordState, rest: dropedValueBytes }
+                                
+                                (Skip, _) ->
                                     { result: Ok recordState, rest: valueBytes }
 
-                                Keep valueDecoder ->
+                                (Keep valueDecoder, _) ->
                                     # Decode the value using the decoder from the recordState
                                     # Note we need to pass json config options recursively here
-                                    Decode.decodeWith valueBytes valueDecoder (@Json { fieldNameMapping })
+                                    Decode.decodeWith valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties })
                         )
                         |> tryDecode
 
@@ -1404,6 +1415,207 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
 
             # Begin decoding field:value pairs
             decodeFields initialState bytesBeforeFirstField
+
+
+skipFieldHelp : SkipValueState, U8 -> [Break SkipValueState, Continue SkipValueState]
+skipFieldHelp = \state, byte ->
+    when (state, byte) is
+        (FieldValue n, b) if b == '}' -> Continue (FieldValueEnd n)
+        (FieldValue n, b) if b == '[' -> Continue (InsideAnArray { index: (n + 1), nesting: 0 })
+        (FieldValue n, b) if b == '{' -> Continue (InsideAnObject { index: (n + 1), nesting: 0 })
+        (FieldValue n, b) if b == '"' -> Continue (InsideAString (n + 1))
+        (FieldValue n, b) if b == ',' -> Break (FieldValueEnd (n))
+        (FieldValue n, _) -> Continue (FieldValue (n + 1))
+
+        # strings
+        (InsideAString n, b) if b == '\\' -> Continue (Escaped (n + 1))
+        (Escaped n, _) -> Continue (InsideAString (n + 1))
+        (InsideAString n, b) if b == '"' -> Continue (FieldValue (n + 1))
+        (InsideAString n, _) -> Continue (InsideAString (n + 1))
+
+        # arrays
+        (InsideAnArray { index, nesting }, b) if b == '"' -> Continue (StringInArray { index: index + 1, nesting }) 
+        (InsideAnArray { index, nesting }, b) if b == '[' -> Continue (InsideAnArray { index: index + 1, nesting: nesting + 1}) 
+        (InsideAnArray { index, nesting }, b) if nesting == 0 && b == ']' -> Continue (FieldValue (index + 1)) 
+        (InsideAnArray { index, nesting }, b) if b == ']' -> Continue (InsideAnArray { index: index + 1, nesting: nesting - 1}) 
+        (InsideAnArray { index, nesting }, _) -> Continue (InsideAnArray { index: index + 1, nesting }) 
+        # arrays escape strings
+        (StringInArray { index, nesting }, b) if b == '\\' -> Continue (EcapdedStringInArray {index: index + 1, nesting })
+        (EcapdedStringInArray { index, nesting }, _) -> Continue (StringInArray {index: index + 1, nesting })
+        (StringInArray { index, nesting }, b) if b == '"' -> Continue (InsideAnArray {index: index + 1, nesting })
+        (StringInArray { index, nesting }, _) -> Continue (StringInArray {index: index + 1, nesting })
+        
+        # objects
+        (InsideAnObject { index, nesting }, b) if b == '"' -> Continue (StringInObject { index: index + 1, nesting }) 
+        (InsideAnObject { index, nesting }, b) if b == '{' -> Continue (InsideAnObject { index: index + 1, nesting: nesting + 1}) 
+        (InsideAnObject { index, nesting }, b) if nesting == 0 && b == '}' -> Continue (FieldValue (index + 1)) 
+        (InsideAnObject { index, nesting }, b) if b == '}' -> Continue (InsideAnObject { index: index + 1, nesting: nesting - 1}) 
+        (InsideAnObject { index, nesting }, _) -> Continue (InsideAnObject { index: index + 1, nesting }) 
+        # objects escape strings
+        (StringInObject { index, nesting }, b) if b == '\\' -> Continue (EncodedStringInObject {index: index + 1, nesting })
+        (EncodedStringInObject { index, nesting }, _) -> Continue (StringInObject {index: index + 1, nesting })
+        (StringInObject { index, nesting }, b) if b == '"' -> Continue (InsideAnObject {index: index + 1, nesting })
+        (StringInObject { index, nesting }, _) -> Continue (StringInObject {index: index + 1, nesting })
+
+        _ -> Break InvalidObject
+
+SkipValueState : [
+    FieldValue Nat,
+    FieldValueEnd Nat,
+    InsideAString Nat,
+    InsideAnObject { index: Nat, nesting: Nat },
+    StringInObject { index: Nat, nesting: Nat },
+    EncodedStringInObject { index: Nat, nesting: Nat },
+    InsideAnArray { index: Nat, nesting: Nat },
+    StringInArray { index: Nat, nesting: Nat },
+    EcapdedStringInArray { index: Nat, nesting: Nat },
+    Escaped Nat,
+    InvalidObject,
+]
+
+# Test decode of partial record
+expect
+    input = Str.toUtf8 "{\"extraField\":2, \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with multiple additional fields
+expect
+    input = Str.toUtf8 "{\"extraField\":2, \"ownerName\": \"Farmer Joe\", \"extraField2\":2 }"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with string value
+expect
+    input = Str.toUtf8 "{\"extraField\": \"abc\", \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with string value with a comma
+expect
+    input = Str.toUtf8 "{\"extraField\": \"a,bc\", \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with string value with an escaped "
+expect
+    input = Str.toUtf8 "{\"extraField\": \"a\\\"bc\", \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with an array
+expect
+    input = Str.toUtf8 "{\"extraField\": [1,2,3], \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+
+# Test decode of partial record with a nested array
+expect
+    input = Str.toUtf8 "{\"extraField\": [1,[4,5,[[9],6,7]],3], \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with a nested array with strings inside
+expect
+    input = Str.toUtf8 "{\"extraField\": [\"a\", [\"bc]]]def\"]], \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with a nested array with escaped strings inside
+expect
+    input = Str.toUtf8 "{\"extraField\": [\"a\", [\"b\\cdef\"]], \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with an object
+expect
+    input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6 }, \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with a nested object
+expect
+    input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"abcd\" } }, \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record with a nested object and string
+expect
+    input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab}}}}}cd\" } }, \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+    
+# Test decode of partial record with a nested object and string ending with an escaped char
+expect
+    input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab\\cd\" } }, \"ownerName\": \"Farmer Joe\"}"
+    actual : DecodeResult { ownerName: Str }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
 
 objectHelp : ObjectState, U8 -> [Break ObjectState, Continue ObjectState]
 objectHelp = \state, byte ->
