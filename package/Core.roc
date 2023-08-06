@@ -46,7 +46,12 @@ interface Core
 
 ## An opaque type with the `EncoderFormatting` and
 ## `DecoderFormatting` abilities.
-Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties: Bool }
+Json := { 
+        fieldNameMapping : FieldNameMapping, 
+        skipMissingProperties: Bool,
+        structure : List Structure,
+        structureBytes : List U8,
+    }
      has [
          EncoderFormatting {
              u8: encodeU8,
@@ -92,14 +97,24 @@ Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties: Bool }
      ]
 
 ## Returns a JSON `Encoder` and `Decoder`
-json = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true }
+json = @Json { 
+        fieldNameMapping: Default, 
+        skipMissingProperties: Bool.true,
+        structure : [],
+        structureBytes : [],
+    }
 
 ## Returns a JSON `Encoder` and `Decoder` with configuration options
 ## 
 ## `skipMissingProperties` - if `True` the decoder will skip additional properties
 ## in the json that are not present in the model. (Default: `True`)
 jsonWithOptions = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true } ->
-    @Json { fieldNameMapping, skipMissingProperties }
+    @Json { 
+        fieldNameMapping, 
+        skipMissingProperties, 
+        structure : [],
+        structureBytes : [],
+    }
 
 ## Mapping between Roc record fields and JSON object names
 FieldNameMapping : [
@@ -283,9 +298,9 @@ expect
     actual == expected
 
 encodeList = \lst, encodeElem ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, structure, structureBytes } ->
         writeList = \{ buffer, elemsLeft }, elem ->
-            bufferWithElem = appendWith buffer (encodeElem elem) (@Json { fieldNameMapping, skipMissingProperties })
+            bufferWithElem = appendWith buffer (encodeElem elem) (@Json { fieldNameMapping, skipMissingProperties, structure, structureBytes })
             bufferWithSuffix =
                 if elemsLeft > 1 then
                     List.append bufferWithElem (Num.toU8 ',')
@@ -309,7 +324,7 @@ expect
     actual == expected
 
 encodeRecord = \fields ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, structure, structureBytes } ->
         writeRecord = \{ buffer, fieldsLeft }, { key, value } ->
 
             fieldName = toObjectNameUsingMap key fieldNameMapping
@@ -319,7 +334,7 @@ encodeRecord = \fields ->
                 |> List.concat (Str.toUtf8 fieldName)
                 |> List.append (Num.toU8 '"')
                 |> List.append (Num.toU8 ':') # Note we need to encode using the json config here
-                |> appendWith value (@Json { fieldNameMapping, skipMissingProperties })
+                |> appendWith value (@Json { fieldNameMapping, skipMissingProperties, structure, structureBytes })
 
             bufferWithSuffix =
                 if fieldsLeft > 1 then
@@ -376,10 +391,10 @@ toYellingCase = \str ->
     |> Str.joinWith ""
 
 encodeTuple = \elems ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, structure, structureBytes } ->
         writeTuple = \{ buffer, elemsLeft }, elemEncoder ->
             bufferWithElem =
-                appendWith buffer elemEncoder (@Json { fieldNameMapping, skipMissingProperties })
+                appendWith buffer elemEncoder (@Json { fieldNameMapping, skipMissingProperties, structure, structureBytes })
 
             bufferWithSuffix =
                 if elemsLeft > 1 then
@@ -403,10 +418,10 @@ expect
     actual == expected
 
 encodeTag = \name, payload ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, structure, structureBytes } ->
         # Idea: encode `A v1 v2` as `{"A": [v1, v2]}`
         writePayload = \{ buffer, itemsLeft }, encoder ->
-            bufferWithValue = appendWith buffer encoder (@Json { fieldNameMapping, skipMissingProperties })
+            bufferWithValue = appendWith buffer encoder (@Json { fieldNameMapping, skipMissingProperties, structure, structureBytes })
             bufferWithSuffix =
                 if itemsLeft > 1 then
                     List.append bufferWithValue (Num.toU8 ',')
@@ -944,37 +959,71 @@ expect
 #
 # Note that decodeStr does not handle leading whitespace, any whitespace must be
 # handled in json list or record decodin.
-decodeString = Decode.custom \bytes, @Json {} ->
+decodeString = Decode.custom \bytes, @Json { structure, structureBytes } ->
+
+    processStrBytes = \strBytes, rest ->
+        if List.isEmpty strBytes then
+            # Nothing here to process
+            { result: Err TooShort, rest: bytes }
+        else
+            # Remove starting and ending quotation marks, replace unicode
+            # escpapes with Roc equivalent, and try to parse RocStr from
+            # bytes
+            result =
+                strBytes
+                |> List.sublist {
+                    start: 1,
+                    len: Num.subSaturated (List.len strBytes) 2,
+                }
+                |> \bytesWithoutQuotationMarks ->
+                    replaceEscapedChars { inBytes: bytesWithoutQuotationMarks, outBytes: [] }
+                |> .outBytes
+                |> Str.fromUtf8
+
+            when result is
+                Ok str ->
+                    { result: Ok str, rest }
+
+                Err _ ->
+                    { result: Err TooShort, rest: bytes }
+
     when bytes is
-        ['n', 'u', 'l', 'l', ..] ->
-            { result: Ok "null", rest: List.drop bytes 4 }
+        [] -> 
+            # Use pre-processed data, retreive slice from decoder structure
+            when structure is
+                [(StartStr idxA), (EndStr idxB), ..] -> 
+                    # Note the +1 here is to account for the quotation marks which 
+                    # are removed in processStrBytes
+                    processStrBytes 
+                        (List.sublist structureBytes { start: idxA, len: Num.toNat (idxB - idxA + 1) })
+                        (List.drop bytes (Num.toNat (idxB - idxA)))
+                _ -> 
+                    crash "TODO blah blah \(List.len bytes |> Num.toStr)"
 
+        ['n', 'u', 'l', 'l', ..] -> { result: Ok "null", rest: List.drop bytes 4 }
+        ['t', 'r', 'u', 'e', ..] -> { result: Ok "true", rest: List.drop bytes 4 }
+        ['f', 'a', 'l', 's', 'e', ..] -> { result: Ok "false", rest: List.drop bytes 5 }
         _ ->
-            { taken: strBytes, rest } = takeJsonString bytes
+            { taken, rest } = takeJsonString bytes
 
-            if List.isEmpty strBytes then
-                { result: Err TooShort, rest: bytes }
-            else
-                # Remove starting and ending quotation marks, replace unicode
-                # escpapes with Roc equivalent, and try to parse RocStr from
-                # bytes
-                result =
-                    strBytes
-                    |> List.sublist {
-                        start: 1,
-                        len: Num.subSaturated (List.len strBytes) 2,
-                    }
-                    |> \bytesWithoutQuotationMarks ->
-                        replaceEscapedChars { inBytes: bytesWithoutQuotationMarks, outBytes: [] }
-                    |> .outBytes
-                    |> Str.fromUtf8
+            processStrBytes taken rest
 
-                when result is
-                    Ok str ->
-                        { result: Ok str, rest }
+# should parse a simple string using pre-processed structure
+expect 
+    inputBytes = Str.toUtf8 "\"abc\""
+    structure = List.walk inputBytes initBuilder builderHelp |> .2
+    decoder = @Json { 
+        structure, 
+        structureBytes: inputBytes, 
+        skipMissingProperties: Bool.false, 
+        fieldNameMapping: CamelCase,
+    }
 
-                    Err _ ->
-                        { result: Err TooShort, rest: bytes }
+    # Note here we provide an empty bytes to signal that we want to use the 
+    # pre-processed structure
+    { result, rest } = Decode.decodeWith [] decodeString decoder
+
+    result == Ok "abc" && rest == []
 
 takeJsonString : List U8 -> { taken : List U8, rest : List U8 }
 takeJsonString = \bytes ->
@@ -1329,7 +1378,7 @@ expect
 
 # JSON OBJECTS -----------------------------------------------------------------
 
-decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, structure, structureBytes } ->
 
         # Recursively build up record from object field:value pairs
         decodeFields = \recordState, bytesBeforeField ->
@@ -1378,7 +1427,7 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                                 (Keep valueDecoder, _) ->
                                     # Decode the value using the decoder from the recordState
                                     # Note we need to pass json config options recursively here
-                                    Decode.decodeWith valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties })
+                                    Decode.decodeWith valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties, structure, structureBytes })
                         )
                         |> tryDecode
 
@@ -1972,3 +2021,77 @@ isUpperCase = \str ->
     when str is
         "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" -> Bool.true
         _ -> Bool.false
+
+
+
+# ---------------------------
+# ---------------------------
+# ---------------------------
+# ---------------------------
+# ---------------------------
+# ---------------------------
+
+
+builderHelp : (Nat, State, List Structure), U8 -> (Nat, State, List Structure)
+builderHelp = \(index, state, values), b ->
+
+    # these are calculated using a fixed number of constant logical operations 
+    isStructural = (b == '{' || b == '}' || b == '[' || b == ']' || b == '"')
+    nextIndex = index + 1
+
+    # branch to update state as required
+    if (state == Normal) && isStructural then
+        when b is
+            '{' -> (nextIndex, Normal, List.append values (StartObj index))
+            '}' -> (nextIndex, Normal, List.append values (EndObj index))
+            '[' -> (nextIndex, Normal, List.append values (StartArr index))
+            ']' -> (nextIndex, Normal, List.append values (EndArr index))
+            '"' -> (nextIndex, InString, List.append values (StartStr index))
+            _ -> crash "unreachable"
+    else if (state == InString) && isStructural && (b == '"') then (nextIndex, Normal, List.append values (EndStr index))
+    else if (state == InString) && isStructural && (b == '\\') then (nextIndex, InStringEscape, values)
+    else if (state == InStringEscape) && isStructural && (b == '"') then (nextIndex, InString, values)
+    else if (state == InStringEscape) && isStructural && (b == '\\') then (nextIndex, InString, values)
+    else (nextIndex, state, values)
+
+initBuilder = (0, Normal, [])
+
+# should parse a simple string
+expect 
+    inputBytes = Str.toUtf8 "\"abc\""
+    actual = List.walk inputBytes initBuilder builderHelp
+    expected = (5, Normal, [StartStr 0, EndStr 4]) 
+
+    actual == expected
+
+# should parse a simple object
+expect 
+    inputBytes = Str.toUtf8 "{\"a\": 1}"
+    actual = List.walk inputBytes initBuilder builderHelp
+    expected = (8, Normal, [StartObj 0, StartStr 1, EndStr 3, EndObj 7]) 
+
+    actual == expected
+
+# should parse a simple object with a string escape
+expect 
+    inputBytes = Str.toUtf8 "{\"a\\r\": 1}"
+    actual = List.walk inputBytes initBuilder builderHelp
+    expected = (10, Normal, [StartObj 0, StartStr 1, EndStr 5, EndObj 9]) 
+
+    actual == expected
+
+State : [
+    Normal,
+    InString,
+    InStringEscape,
+]
+
+Structure : [
+    StartStr Nat,
+    EndStr Nat,
+    StartObj Nat,
+    EndObj Nat,
+    StartArr Nat,
+    EndArr Nat,
+    Empty,
+]
