@@ -47,7 +47,7 @@ interface Core
 ## An opaque type with the `EncoderFormatting` and
 ## `DecoderFormatting` abilities.
 Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties: Bool }
-     has [
+     implements [
          EncoderFormatting {
              u8: encodeU8,
              u16: encodeU16,
