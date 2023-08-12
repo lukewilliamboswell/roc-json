@@ -31,9 +31,8 @@ jobs:
 
       - run: ./roc_nightly/roc version
 
-      - run: sudo apt install -y expect ncat
+      - run: sudo apt install -y expect
       # expect for testing
-      # ncat for tcp-client example
 
       - run: expect -v
 
