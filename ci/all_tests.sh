@@ -14,7 +14,7 @@ done
 
 # roc build
 for roc_file in $examples_dir*.roc; do
-    $roc build $roc_file
+    $roc build $roc_file --linker=legacy
 done
 
 # check output
