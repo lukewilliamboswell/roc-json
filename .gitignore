@@ -1,4 +1,5 @@
 examples/simple1
 examples/simple2
+examples/tuple
 .DS_Store
 generated-docs/
