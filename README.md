@@ -5,7 +5,7 @@
 
 Try running some of the examples using Roc cli.
 
-> Note: --linker=legacy is necessary for this package because of [this roc issue](https://github.com/roc-lang/roc/issues/3609) 
+:warning: `--linker=legacy` is necessary for this package because of [this roc issue](https://github.com/roc-lang/roc/issues/3609) 
 
 ```sh
 $ roc run examples/simple1.roc --linker=legacy
