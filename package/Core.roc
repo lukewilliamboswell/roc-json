@@ -945,36 +945,32 @@ expect
 # Note that decodeStr does not handle leading whitespace, any whitespace must be
 # handled in json list or record decodin.
 decodeString = Decode.custom \bytes, @Json {} ->
-    when bytes is
-        ['n', 'u', 'l', 'l', ..] ->
-            { result: Ok "null", rest: List.dropFirst bytes 4 }
 
-        _ ->
-            { taken: strBytes, rest } = takeJsonString bytes
+    { taken: strBytes, rest } = takeJsonString bytes
 
-            if List.isEmpty strBytes then
+    if List.isEmpty strBytes then
+        { result: Err TooShort, rest: bytes }
+    else
+        # Remove starting and ending quotation marks, replace unicode
+        # escpapes with Roc equivalent, and try to parse RocStr from
+        # bytes
+        result =
+            strBytes
+            |> List.sublist {
+                start: 1,
+                len: Num.subSaturated (List.len strBytes) 2,
+            }
+            |> \bytesWithoutQuotationMarks ->
+                replaceEscapedChars { inBytes: bytesWithoutQuotationMarks, outBytes: [] }
+            |> .outBytes
+            |> Str.fromUtf8
+
+        when result is
+            Ok str ->
+                { result: Ok str, rest }
+
+            Err _ ->
                 { result: Err TooShort, rest: bytes }
-            else
-                # Remove starting and ending quotation marks, replace unicode
-                # escpapes with Roc equivalent, and try to parse RocStr from
-                # bytes
-                result =
-                    strBytes
-                    |> List.sublist {
-                        start: 1,
-                        len: Num.subSaturated (List.len strBytes) 2,
-                    }
-                    |> \bytesWithoutQuotationMarks ->
-                        replaceEscapedChars { inBytes: bytesWithoutQuotationMarks, outBytes: [] }
-                    |> .outBytes
-                    |> Str.fromUtf8
-
-                when result is
-                    Ok str ->
-                        { result: Ok str, rest }
-
-                    Err _ ->
-                        { result: Err TooShort, rest: bytes }
 
 takeJsonString : List U8 -> { taken : List U8, rest : List U8 }
 takeJsonString = \bytes ->
@@ -1188,10 +1184,11 @@ expect
 # Test decode of a null
 expect
     input = Str.toUtf8 "null"
-    actual = Decode.fromBytesPartial input json
-    expected = Ok "null"
 
-    actual.result == expected
+    actual : DecodeResult Str
+    actual = Decode.fromBytesPartial input json
+
+    Result.isErr actual.result
 
 # JSON ARRAYS ------------------------------------------------------------------
 
