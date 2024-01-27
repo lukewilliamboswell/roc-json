@@ -371,9 +371,10 @@ expect
     actual == expected
 
 toYellingCase = \str ->
-    Str.graphemes str
+    Str.toUtf8 str
     |> List.map toUppercase
-    |> Str.joinWith ""
+    |> Str.fromUtf8
+    |> crashOnBadUtf8Error
 
 encodeTuple = \elems ->
     Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
@@ -1684,9 +1685,10 @@ expect
     actual.result == expected
 
 fromYellingCase = \str ->
-    Str.graphemes str
+    Str.toUtf8 str
     |> List.map toLowercase
-    |> Str.joinWith ""
+    |> Str.fromUtf8
+    |> crashOnBadUtf8Error
 
 expect fromYellingCase "YELLING" == "yelling"
 
@@ -1783,9 +1785,8 @@ snakeToCamel : Str -> Str
 snakeToCamel = \str ->
     segments = Str.split str "_"
     when segments is
-        [first, ..] ->
-            segments
-            |> List.dropFirst 1
+        [first, .. as rest] ->
+            rest
             |> List.map uppercaseFirst
             |> List.prepend first
             |> Str.joinWith ""
@@ -1796,13 +1797,11 @@ expect snakeToCamel "snake_case_string" == "snakeCaseString"
 
 pascalToCamel : Str -> Str
 pascalToCamel = \str ->
-    segments = Str.graphemes str
+    segments = Str.toUtf8 str
     when segments is
-        [a, ..] ->
+        [a, .. as rest] ->
             first = toLowercase a
-            rest = List.dropFirst segments 1
-
-            Str.joinWith (List.prepend rest first) ""
+            rest |> List.prepend first |> Str.fromUtf8 |> crashOnBadUtf8Error
 
         _ -> str
 
@@ -1812,9 +1811,8 @@ kebabToCamel : Str -> Str
 kebabToCamel = \str ->
     segments = Str.split str "-"
     when segments is
-        [first, ..] ->
-            segments
-            |> List.dropFirst 1
+        [first, .. as rest] ->
+            rest
             |> List.map uppercaseFirst
             |> List.prepend first
             |> Str.joinWith ""
@@ -1825,13 +1823,11 @@ expect kebabToCamel "kebab-case-string" == "kebabCaseString"
 
 camelToPascal : Str -> Str
 camelToPascal = \str ->
-    segments = Str.graphemes str
+    segments = Str.toUtf8 str
     when segments is
-        [a, ..] ->
+        [a, .. as rest] ->
             first = toUppercase a
-            rest = List.dropFirst segments 1
-
-            Str.joinWith (List.prepend rest first) ""
+            rest |> List.prepend first |> Str.fromUtf8 |> crashOnBadUtf8Error
 
         _ -> str
 
@@ -1839,20 +1835,22 @@ expect camelToPascal "someCaseString" == "SomeCaseString"
 
 camelToKebeb : Str -> Str
 camelToKebeb = \str ->
-    rest = Str.graphemes str
+    rest = Str.toUtf8 str
     taken = List.withCapacity (List.len rest)
 
     camelToKebabHelp { taken, rest }
     |> .taken
-    |> Str.joinWith ""
+    |> Str.fromUtf8
+    |> crashOnBadUtf8Error
 
-camelToKebabHelp : { taken : List Str, rest : List Str } -> { taken : List Str, rest : List Str }
+camelToKebabHelp : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
 camelToKebabHelp = \{ taken, rest } ->
     when rest is
         [] -> { taken, rest }
         [a, ..] if isUpperCase a ->
+            # The codepoint for kebab - is 45.
             camelToKebabHelp {
-                taken: List.concat taken ["-", toLowercase a],
+                taken: List.concat taken [45, toLowercase a],
                 rest: List.dropFirst rest 1,
             }
 
@@ -1866,20 +1864,22 @@ expect camelToKebeb "someCaseString" == "some-case-string"
 
 camelToSnake : Str -> Str
 camelToSnake = \str ->
-    rest = Str.graphemes str
+    rest = Str.toUtf8 str
     taken = List.withCapacity (List.len rest)
 
     camelToSnakeHelp { taken, rest }
     |> .taken
-    |> Str.joinWith ""
+    |> Str.fromUtf8
+    |> crashOnBadUtf8Error
 
-camelToSnakeHelp : { taken : List Str, rest : List Str } -> { taken : List Str, rest : List Str }
+camelToSnakeHelp : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
 camelToSnakeHelp = \{ taken, rest } ->
     when rest is
         [] -> { taken, rest }
         [a, ..] if isUpperCase a ->
+            # The codepoint for snake _ is 95.
             camelToSnakeHelp {
-                taken: List.concat taken ["_", toLowercase a],
+                taken: List.concat taken [95, toLowercase a],
                 rest: List.dropFirst rest 1,
             }
 
@@ -1893,83 +1893,35 @@ expect camelToSnake "someCaseString" == "some_case_string"
 
 uppercaseFirst : Str -> Str
 uppercaseFirst = \str ->
-    segments = Str.graphemes str
+    segments = Str.toUtf8 str
     when segments is
-        [a, ..] ->
+        [a, .. as rest] ->
             first = toUppercase a
-            rest = List.dropFirst segments 1
-
-            Str.joinWith (List.prepend rest first) ""
+            rest |> List.prepend first |> Str.fromUtf8 |> crashOnBadUtf8Error
 
         _ -> str
 
-toUppercase : Str -> Str
-toUppercase = \str ->
-    when str is
-        "a" -> "A"
-        "b" -> "B"
-        "c" -> "C"
-        "d" -> "D"
-        "e" -> "E"
-        "f" -> "F"
-        "g" -> "G"
-        "h" -> "H"
-        "i" -> "I"
-        "j" -> "J"
-        "k" -> "K"
-        "l" -> "L"
-        "m" -> "M"
-        "n" -> "N"
-        "o" -> "O"
-        "p" -> "P"
-        "q" -> "Q"
-        "r" -> "R"
-        "s" -> "S"
-        "t" -> "T"
-        "u" -> "U"
-        "v" -> "V"
-        "w" -> "W"
-        "x" -> "X"
-        "y" -> "Y"
-        "z" -> "Z"
-        _ -> str
+toUppercase : U8 -> U8
+toUppercase = \codeunit ->
+    if 97 <= codeunit && codeunit <= 122 then
+        # Range of lowercase latin alphabet
+        # 32 is the difference to the respecive uppercase letters
+        codeunit - 32
+    else
+        codeunit
 
-toLowercase : Str -> Str
-toLowercase = \str ->
-    when str is
-        "A" -> "a"
-        "B" -> "b"
-        "C" -> "c"
-        "D" -> "d"
-        "E" -> "e"
-        "F" -> "f"
-        "G" -> "g"
-        "H" -> "h"
-        "I" -> "i"
-        "J" -> "j"
-        "K" -> "k"
-        "L" -> "l"
-        "M" -> "m"
-        "N" -> "n"
-        "O" -> "o"
-        "P" -> "p"
-        "Q" -> "q"
-        "R" -> "r"
-        "S" -> "s"
-        "T" -> "t"
-        "U" -> "u"
-        "V" -> "v"
-        "W" -> "w"
-        "X" -> "x"
-        "Y" -> "y"
-        "Z" -> "z"
-        _ -> str
+toLowercase : U8 -> U8
+toLowercase = \codeunit ->
+    if 65 <= codeunit && codeunit <= 90 then
+        # Range of uppercase latin alphabet
+        # 32 is the difference to the respecive lowercase letters
+        codeunit + 32
+    else
+        codeunit
 
-isUpperCase : Str -> Bool
-isUpperCase = \str ->
-    when str is
-        "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" -> Bool.true
-        _ -> Bool.false
+isUpperCase : U8 -> Bool
+isUpperCase = \codeunit ->
+    65 <= codeunit && codeunit <= 90
 
 eatWhitespace : List U8 -> List U8
 eatWhitespace = \bytes ->
@@ -1980,3 +1932,9 @@ eatWhitespace = \bytes ->
 expect eatWhitespace (Str.toUtf8 "") == (Str.toUtf8 "")
 expect eatWhitespace (Str.toUtf8 "ABC    ") == (Str.toUtf8 "ABC    ")
 expect eatWhitespace (Str.toUtf8 "  \nABC    ") == (Str.toUtf8 "ABC    ")
+
+crashOnBadUtf8Error : Result Str _ -> Str
+crashOnBadUtf8Error = \res ->
+    when res is
+        Ok str -> str
+        Err _ -> crash "invalid UTF-8 code units"
