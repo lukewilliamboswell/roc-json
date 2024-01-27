@@ -13,7 +13,8 @@ jobs:
     runs-on: [ubuntu-20.04]
     steps:
       - uses: actions/checkout@v3
-    
+
+      # get roc cli 
       - name: get latest roc nightly
         run: |
           curl -fOL https://github.com/roc-lang/roc/releases/download/nightly/roc_nightly-linux_x86_64-latest.tar.gz
@@ -31,10 +32,9 @@ jobs:
 
       - run: ./roc_nightly/roc version
 
-      - run: sudo apt install -y expect
       # expect for testing
-
+      - run: sudo apt install -y expect
       - run: expect -v
 
-      # Run all tests 
-      - run: ./ci/all_tests.sh
+      # run all tests 
+      - run: ROC=./roc_nightly/roc ./ci/all_tests.sh
