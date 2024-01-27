@@ -1848,9 +1848,8 @@ camelToKebabHelp = \{ taken, rest } ->
     when rest is
         [] -> { taken, rest }
         [a, ..] if isUpperCase a ->
-            # The codepoint for kebab - is 45.
             camelToKebabHelp {
-                taken: List.concat taken [45, toLowercase a],
+                taken: List.concat taken ['-', toLowercase a],
                 rest: List.dropFirst rest 1,
             }
 
@@ -1877,9 +1876,8 @@ camelToSnakeHelp = \{ taken, rest } ->
     when rest is
         [] -> { taken, rest }
         [a, ..] if isUpperCase a ->
-            # The codepoint for snake _ is 95.
             camelToSnakeHelp {
-                taken: List.concat taken [95, toLowercase a],
+                taken: List.concat taken ['_', toLowercase a],
                 rest: List.dropFirst rest 1,
             }
 
@@ -1903,25 +1901,21 @@ uppercaseFirst = \str ->
 
 toUppercase : U8 -> U8
 toUppercase = \codeunit ->
-    if 97 <= codeunit && codeunit <= 122 then
-        # Range of lowercase latin alphabet
-        # 32 is the difference to the respecive uppercase letters
-        codeunit - 32
+    if 'a' <= codeunit && codeunit <= 'z' then
+        codeunit - (32) # 32 is the difference to the respecive uppercase letters
     else
         codeunit
 
 toLowercase : U8 -> U8
 toLowercase = \codeunit ->
-    if 65 <= codeunit && codeunit <= 90 then
-        # Range of uppercase latin alphabet
-        # 32 is the difference to the respecive lowercase letters
-        codeunit + 32
+    if 'A' <= codeunit && codeunit <= 'Z' then
+        codeunit + 32 # 32 is the difference to the respecive lowercase letters
     else
         codeunit
 
 isUpperCase : U8 -> Bool
 isUpperCase = \codeunit ->
-    65 <= codeunit && codeunit <= 90
+    'A' <= codeunit && codeunit <= 'Z'
 
 eatWhitespace : List U8 -> List U8
 eatWhitespace = \bytes ->
