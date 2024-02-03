@@ -25,7 +25,7 @@ You can use the release URL package in your Roc app. In your `app.roc` file you 
 ```roc
 app "example"
     packages {
-        cli: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br",
+        cli: "https://github.com/roc-lang/basic-cli/releases/download/[REPLACE WITH RELEASE URL].tar.br",
         json: "https://github.com/lukewilliamboswell/roc-json/releases/download/[REPLACE WITH RELEASE URL].tar.br",
     }
     ...
