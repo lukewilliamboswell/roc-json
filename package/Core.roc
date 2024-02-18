@@ -1450,7 +1450,7 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
 skipFieldHelp : SkipValueState, U8 -> [Break SkipValueState, Continue SkipValueState]
 skipFieldHelp = \state, byte ->
     when (state, byte) is
-        (FieldValue n, b) if b == '}' -> Continue (FieldValueEnd n)
+        (FieldValue n, b) if b == '}' -> Break (FieldValueEnd n)
         (FieldValue n, b) if b == '[' -> Continue (InsideAnArray { index: (n + 1), nesting: 0 })
         (FieldValue n, b) if b == '{' -> Continue (InsideAnObject { index: (n + 1), nesting: 0 })
         (FieldValue n, b) if b == '"' -> Continue (InsideAString (n + 1))
@@ -1506,6 +1506,39 @@ expect
     actual = Decode.fromBytesPartial input json
 
     expected = Ok { ownerName: "Farmer Joe" }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record in list additional field last
+expect
+    input = Str.toUtf8 "[{\"ownerName\": \"Farmer Joe\", \"extraField\":2}]"
+    actual : DecodeResult (List { ownerName : Str })
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok [{ ownerName: "Farmer Joe" }]
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record in record partial field last
+expect
+    input = Str.toUtf8 "{\"value\": {\"ownerName\": \"Farmer Joe\",\"extraField\":2}}"
+    actual : DecodeResult { value : { ownerName : Str } }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { value: { ownerName: "Farmer Joe" } }
+
+    result = actual.result
+    result == expected
+
+# Test decode of partial record in partial record additional fields last
+expect
+    input = Str.toUtf8 "{\"value\": {\"ownerName\": \"Farmer Joe\", \"extraField\":2}, \"extraField\":2}"
+    actual : DecodeResult { value : { ownerName : Str } }
+    actual = Decode.fromBytesPartial input json
+
+    expected = Ok { value: { ownerName: "Farmer Joe" } }
 
     result = actual.result
     result == expected
