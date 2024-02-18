@@ -1201,9 +1201,9 @@ expect
 
 # JSON ARRAYS ------------------------------------------------------------------
 
-decodeList = \elemDecoder -> Decode.custom \bytes, @Json {} ->
+decodeList = \elemDecoder -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
 
-        decodeElems = arrayElemDecoder elemDecoder
+        decodeElems = arrayElemDecoder elemDecoder (@Json { fieldNameMapping, skipMissingProperties })
 
         result =
             when List.walkUntil bytes (BeforeOpeningBracket 0) arrayOpeningHelp is
@@ -1214,7 +1214,7 @@ decodeList = \elemDecoder -> Decode.custom \bytes, @Json {} ->
             Ok elemBytes -> decodeElems elemBytes []
             Err ExpectedOpeningBracket -> { result: Err TooShort, rest: bytes }
 
-arrayElemDecoder = \elemDecoder ->
+arrayElemDecoder = \elemDecoder, @Json { fieldNameMapping, skipMissingProperties } ->
 
     decodeElems = \bytes, accum ->
 
@@ -1238,7 +1238,7 @@ arrayElemDecoder = \elemDecoder ->
                 elemBytes = List.dropFirst bytes n
 
                 # Decode current element
-                { result, rest } = Decode.decodeWith elemBytes elemDecoder json
+                { result, rest } = Decode.decodeWith elemBytes elemDecoder (@Json { fieldNameMapping, skipMissingProperties })
 
                 when result is
                     Ok elem ->
@@ -1329,6 +1329,32 @@ expect
     actual : DecodeResult (List Str)
     actual = Decode.fromBytesPartial input json
     expected = Ok ["one", "two", "3"]
+
+    actual.result == expected
+
+# Test decode array of object field name mapping
+expect
+    input = Str.toUtf8 "[{\"field_name\":1}]"
+
+    decoder = jsonWithOptions { fieldNameMapping: SnakeCase }
+
+    actual : DecodeResult (List { fieldName : U64 })
+    actual = Decode.fromBytesPartial input decoder
+
+    expected = Ok [{ fieldName: 1 }]
+
+    actual.result == expected
+
+# Test decode array of object not skipping missing properties
+expect
+    input = Str.toUtf8 "[{\"extraField\":2,\"fieldName\":1}]"
+
+    decoder = jsonWithOptions { skipMissingProperties: Bool.false }
+
+    actual : DecodeResult (List { fieldName : U64 })
+    actual = Decode.fromBytesPartial input decoder
+
+    expected = Err TooShort
 
     actual.result == expected
 
