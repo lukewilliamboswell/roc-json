@@ -1,11 +1,9 @@
 
 # Json Package for Roc 🤘
 
-## Example 
-
-Try running some of the examples using Roc cli.
-
 :warning: `--linker=legacy` is necessary for this package because of [this roc issue](https://github.com/roc-lang/roc/issues/3609) 
+
+## Example 
 
 ```sh
 $ roc run examples/simple1.roc --linker=legacy
@@ -16,7 +14,7 @@ Successfully decoded image, title:"View from 15th Floor"
 
 See [https://lukewilliamboswell.github.io/roc-json/](https://lukewilliamboswell.github.io/roc-json/)
 
-Alternatively, you can also generate docs locally using `roc docs package/main.roc` and then serve the html files. 
+Alternatively, generate docs locally using `roc docs package/main.roc` and then serve the html files. 
 
 ## Package URL Release
 
