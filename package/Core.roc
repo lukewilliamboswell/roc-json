@@ -1435,17 +1435,26 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
 
         countBytesBeforeFirstField =
             when List.walkUntil bytes (BeforeOpeningBrace 0) objectHelp is
-                ObjectFieldNameStart n -> n
-                _ -> 0
+                ObjectFieldNameStart n -> FirstFieldAt n
+                AfterClosingBrace n -> NoFieldsInObject n
+                _ -> InvalidObject
 
-        if countBytesBeforeFirstField == 0 then
-            # Invalid object, expected opening brace '{' followed by a field
-            { result: Err TooShort, rest: bytes }
-        else
-            bytesBeforeFirstField = List.dropFirst bytes countBytesBeforeFirstField
+        when countBytesBeforeFirstField is
+            InvalidObject ->
+                # Invalid object, expected opening brace '{' followed by a field
+                { result: Err TooShort, rest: bytes }
 
-            # Begin decoding field:value pairs
-            decodeFields initialState bytesBeforeFirstField
+            NoFieldsInObject n ->
+                # Empty object, try decode using initialState
+                when finalizer initialState is
+                    Ok val -> { result: Ok val, rest: List.dropFirst bytes n }
+                    Err e -> { result: Err e, rest: bytes }
+
+            FirstFieldAt n ->
+                bytesBeforeFirstField = List.dropFirst bytes n
+
+                # Begin decoding field:value pairs
+                decodeFields initialState bytesBeforeFirstField
 
 skipFieldHelp : SkipValueState, U8 -> [Break SkipValueState, Continue SkipValueState]
 skipFieldHelp = \state, byte ->
@@ -1498,6 +1507,15 @@ SkipValueState : [
     Escaped U64,
     InvalidObject,
 ]
+
+# Test decode of empty record
+expect
+    input = Str.toUtf8 "{}"
+
+    actual : DecodeResult {}
+    actual = Decode.fromBytesPartial input json
+
+    actual.result == Ok {}
 
 # Test decode of partial record
 expect
@@ -1681,6 +1699,7 @@ objectHelp = \state, byte ->
         (BeforeOpeningBrace n, b) if isWhitespace b -> Continue (BeforeOpeningBrace (n + 1))
         (BeforeOpeningBrace n, b) if b == '{' -> Continue (AfterOpeningBrace (n + 1))
         (AfterOpeningBrace n, b) if isWhitespace b -> Continue (AfterOpeningBrace (n + 1))
+        (AfterOpeningBrace n, b) if b == '}' -> Continue (AfterClosingBrace (n + 1))
         (AfterOpeningBrace n, b) if b == '"' -> Break (ObjectFieldNameStart n)
         (BeforeColon n, b) if isWhitespace b -> Continue (BeforeColon (n + 1))
         (BeforeColon n, b) if b == ':' -> Continue (AfterColon (n + 1))
