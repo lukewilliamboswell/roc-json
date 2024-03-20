@@ -82,6 +82,43 @@ expect
     expected = Ok "[1,2,3]"
     expected == encoded
 
+nullJson=Core.jsonWithOptions {emptyEncodeAsNull:Bool.true}
+# Encode Option None record with null
+expect
+    encoded =
+        dat : { maybe : Option U8, other : Str }
+        dat = { maybe: none {}, other: "hi" }
+        Encode.toBytes dat nullJson
+        |> Str.fromUtf8
+
+    expected = Ok
+        """
+        {"maybe":null,"other":"hi"}
+        """
+    expected == encoded
+# Encode Option tuple
+expect
+    encoded =
+        dat : (U8, Option U8, Option Str, Str)
+        dat = (10, none {}, some "opt", "hi")
+        Encode.toBytes dat nullJson
+        |> Str.fromUtf8
+
+    expected = Ok
+        """
+        [10,null,"opt","hi"]
+        """
+    expected == encoded
+# Encode Option list
+expect
+    encoded =
+        dat = [some 1, none {}, some 2, some 3]
+        Encode.toBytes dat nullJson
+        |> Str.fromUtf8
+
+    expected = Ok "[1,null,2,3]"
+    expected == encoded
+
 optionDecode = Decode.custom \bytes, fmt ->
     if bytes |> List.len == 0 then
         { result: Ok (@Option (None)), rest: [] }
