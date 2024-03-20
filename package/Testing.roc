@@ -1,7 +1,8 @@
 interface Testing
     exposes []
     imports [
-    Encode,Core
+        Encode,
+        Core,
     ]
 
 Option val := [None, Some val]
@@ -23,7 +24,7 @@ optionToEncode = \@Option val ->
             Some contents -> bytes |> Encode.append contents fmt
             None -> bytes
 
-#Encode Option none
+# Encode Option none
 expect
     encoded =
         dat : Option U8
@@ -33,7 +34,7 @@ expect
 
     expected = Ok ""
     expected == encoded
-#Encode Option None record
+# Encode Option None record
 expect
     encoded =
         dat : { maybe : Option U8, other : Str }
@@ -41,7 +42,10 @@ expect
         Encode.toBytes dat Core.json
         |> Str.fromUtf8
 
-    expected = Ok """{"other":"hi"}"""
+    expected = Ok
+        """
+        {"other":"hi"}
+        """
     expected == encoded
 # Encode Option Some record
 expect
@@ -50,26 +54,32 @@ expect
         |> Encode.toBytes Core.json
         |> Str.fromUtf8
 
-    expected = Ok """{"maybe":10}"""
+    expected = Ok
+        """
+        {"maybe":10}
+        """
     expected == encoded
-#Encode Option tuple
+# Encode Option tuple
 expect
     encoded =
-        dat:(U8,Option U8,Option Str,Str)
-        dat = (10,none{},some"opt","hi")
+        dat : (U8, Option U8, Option Str, Str)
+        dat = (10, none {}, some "opt", "hi")
         Encode.toBytes dat Core.json
         |> Str.fromUtf8
 
-    expected = Ok """[10,"opt","hi"]"""
+    expected = Ok
+        """
+        [10,"opt","hi"]
+        """
     expected == encoded
-#Encode Option list
+# Encode Option list
 expect
     encoded =
-        dat = [some 1,none {},some 2,some 3]
+        dat = [some 1, none {}, some 2, some 3]
         Encode.toBytes dat Core.json
         |> Str.fromUtf8
 
-    expected = Ok """[1,2,3]"""
+    expected = Ok "[1,2,3]"
     expected == encoded
 
 optionDecode = Decode.custom \bytes, fmt ->
@@ -84,7 +94,12 @@ optionDecode = Decode.custom \bytes, fmt ->
 OptionTest : { y : U8, maybe : Option U8 }
 expect
     decoded : Result OptionTest _
-    decoded = """{"y":1}""" |> Str.toUtf8 |> Decode.fromBytes Core.json
+    decoded =
+        """
+        {"y":1}
+        """
+        |> Str.toUtf8
+        |> Decode.fromBytes Core.json
 
     expected = Ok ({ y: 1u8, maybe: none {} })
     isGood =
@@ -107,19 +122,19 @@ expect
 
     expected = Ok ({ maybe: some 1u8 })
     expected == decoded
-#Decode option list
+# Decode option list
 expect
     decoded =
-        """
-        [1,2,3]
-        """
+        "[1,2,3]"
         |> Str.toUtf8
         |> Decode.fromBytes Core.json
 
-    expected = Ok [some 1,some 2, some 3]
+    expected = Ok [some 1, some 2, some 3]
     expected == decoded
-#Decode Option Tuple
-#This doesn't really make sense unless none is encoded as "null"
+
+# Decode Option Tuple
+# This doesn't really make sense unless none is encoded as "null", but that could be a worthwhile option
+
 # expect
 #     decoded:Result(Option U8,Option U8 ,Option U8  ) _
 #     decoded =
@@ -128,6 +143,24 @@ expect
 #         """
 #         |> Str.toUtf8
 #         |> Decode.fromBytes Core.json
-
 #     expected = Ok (some 1,none {}, some 2)
 #     expected == decoded
+
+# null decode
+expect
+    decoded : Result OptionTest _
+    decoded =
+        """
+        {"y":1,"maybe":null}
+        """
+        |> Str.toUtf8
+        |> Decode.fromBytes Core.json
+
+    expected = Ok ({ y: 1u8, maybe: none {} })
+    isGood =
+        when (decoded, expected) is
+            (Ok a, Ok b) ->
+                a == b
+
+            _ -> Bool.false
+    isGood == Bool.true
