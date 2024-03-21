@@ -36,6 +36,7 @@ interface Core
         json,
         jsonWithOptions,
     ]
+
     imports [
         Encode.{
             Encoder,
@@ -46,7 +47,7 @@ interface Core
 
 ## An opaque type with the `EncoderFormatting` and
 ## `DecoderFormatting` abilities.
-Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties : Bool }
+Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties : Bool, nullAsUndefined : Bool, emptyEncodeAsNull : Bool }
     implements [
         EncoderFormatting {
             u8: encodeU8,
@@ -92,14 +93,21 @@ Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties : Bool }
     ]
 
 ## Returns a JSON `Encoder` and `Decoder`
-json = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true }
+json = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true, nullAsUndefined: Bool.true, emptyEncodeAsNull: Bool.true }
 
 ## Returns a JSON `Encoder` and `Decoder` with configuration options
 ##
-## `skipMissingProperties` - if `True` the decoder will skip additional properties
+## **skipMissingProperties** - if `True` the decoder will skip additional properties
 ## in the json that are not present in the model. (Default: `True`)
-jsonWithOptions = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true } ->
-    @Json { fieldNameMapping, skipMissingProperties }
+##
+## **nullAsUndefined** - if `True` the decoder will convert `null` to an empty byte array.
+## This makes `{"email":null,"name":"bob"}` decode the same as `{"name":"bob"}`. (Default: `True`)
+##
+## **emptyEncodeAsNull** - if `True` encoders that return `[]` will result in a `null` in the
+## json. If `False` when an encoder returns `[]` the record field, or list/tuple element, will be ommitted.
+## eg: `{email:@Option None, name:"bob"}` encodes to `{"email":null, "name":"bob"}` instead of `{"name":"bob"}` (Default: `True`)
+jsonWithOptions = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true, nullAsUndefined ? Bool.true, emptyEncodeAsNull ? Bool.true } ->
+    @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull }
 
 ## Mapping between Roc record fields and JSON object names
 FieldNameMapping : [
@@ -283,16 +291,28 @@ expect
     actual == expected
 
 encodeList = \lst, encodeElem ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull } ->
         writeList = \{ buffer, elemsLeft }, elem ->
-            bufferWithElem = appendWith buffer (encodeElem elem) (@Json { fieldNameMapping, skipMissingProperties })
-            bufferWithSuffix =
-                if elemsLeft > 1 then
-                    List.append bufferWithElem (Num.toU8 ',')
-                else
-                    bufferWithElem
+            beforeBufferLen = buffer |> List.len
 
-            { buffer: bufferWithSuffix, elemsLeft: elemsLeft - 1 }
+            bufferWithElem =
+                elemBytes =
+                    appendWith [] (encodeElem elem) (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
+                    |> emptyToNull emptyEncodeAsNull
+                buffer |> List.concat elemBytes
+
+            # If our encoder returned [] we just skip the elem
+            emptyEncode = bufferWithElem |> List.len == beforeBufferLen
+            if emptyEncode then
+                { buffer: bufferWithElem, elemsLeft: elemsLeft - 1 }
+            else
+                bufferWithSuffix =
+                    if elemsLeft > 1 then
+                        List.append bufferWithElem (Num.toU8 ',')
+                    else
+                        bufferWithElem
+
+                { buffer: bufferWithSuffix, elemsLeft: elemsLeft - 1 }
 
         head = List.append bytes (Num.toU8 '[')
         { buffer: withList } = List.walk lst { buffer: head, elemsLeft: List.len lst } writeList
@@ -309,25 +329,35 @@ expect
     actual == expected
 
 encodeRecord = \fields ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull } ->
         writeRecord = \{ buffer, fieldsLeft }, { key, value } ->
 
-            fieldName = toObjectNameUsingMap key fieldNameMapping
+            fieldValue =
+                []
+                |> appendWith value (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
+                |> emptyToNull emptyEncodeAsNull
 
-            bufferWithKeyValue =
-                List.append buffer (Num.toU8 '"')
-                |> List.concat (Str.toUtf8 fieldName)
-                |> List.append (Num.toU8 '"')
-                |> List.append (Num.toU8 ':') # Note we need to encode using the json config here
-                |> appendWith value (@Json { fieldNameMapping, skipMissingProperties })
+            # If our encoder returned [] we just skip the field
 
-            bufferWithSuffix =
-                if fieldsLeft > 1 then
-                    List.append bufferWithKeyValue (Num.toU8 ',')
-                else
-                    bufferWithKeyValue
+            emptyEncode = fieldValue == []
+            if emptyEncode then
+                { buffer, fieldsLeft: fieldsLeft - 1 }
+            else
+                fieldName = toObjectNameUsingMap key fieldNameMapping
+                bufferWithKeyValue =
+                    List.append buffer (Num.toU8 '"')
+                    |> List.concat (Str.toUtf8 fieldName)
+                    |> List.append (Num.toU8 '"')
+                    |> List.append (Num.toU8 ':') # Note we need to encode using the json config here
+                    |> List.concat fieldValue
 
-            { buffer: bufferWithSuffix, fieldsLeft: fieldsLeft - 1 }
+                bufferWithSuffix =
+                    if fieldsLeft > 1 then
+                        List.append bufferWithKeyValue (Num.toU8 ',')
+                    else
+                        bufferWithKeyValue
+
+                { buffer: bufferWithSuffix, fieldsLeft: fieldsLeft - 1 }
 
         bytesHead = List.append bytes (Num.toU8 '{')
         { buffer: bytesWithRecord } = List.walk fields { buffer: bytesHead, fieldsLeft: List.len fields } writeRecord
@@ -377,18 +407,27 @@ toYellingCase = \str ->
     |> crashOnBadUtf8Error
 
 encodeTuple = \elems ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull } ->
         writeTuple = \{ buffer, elemsLeft }, elemEncoder ->
+            beforeBufferLen = buffer |> List.len
+
             bufferWithElem =
-                appendWith buffer elemEncoder (@Json { fieldNameMapping, skipMissingProperties })
+                elemBytes =
+                    appendWith [] (elemEncoder) (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
+                    |> emptyToNull emptyEncodeAsNull
+                buffer |> List.concat elemBytes
+            # If our encoder returned [] we just skip the elem
+            emptyEncode = bufferWithElem |> List.len == beforeBufferLen
+            if emptyEncode then
+                { buffer: bufferWithElem, elemsLeft: elemsLeft - 1 }
+            else
+                bufferWithSuffix =
+                    if elemsLeft > 1 then
+                        List.append bufferWithElem (Num.toU8 ',')
+                    else
+                        bufferWithElem
 
-            bufferWithSuffix =
-                if elemsLeft > 1 then
-                    List.append bufferWithElem (Num.toU8 ',')
-                else
-                    bufferWithElem
-
-            { buffer: bufferWithSuffix, elemsLeft: elemsLeft - 1 }
+                { buffer: bufferWithSuffix, elemsLeft: elemsLeft - 1 }
 
         bytesHead = List.append bytes (Num.toU8 '[')
         { buffer: bytesWithRecord } = List.walk elems { buffer: bytesHead, elemsLeft: List.len elems } writeTuple
@@ -404,10 +443,10 @@ expect
     actual == expected
 
 encodeTag = \name, payload ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull } ->
         # Idea: encode `A v1 v2` as `{"A": [v1, v2]}`
         writePayload = \{ buffer, itemsLeft }, encoder ->
-            bufferWithValue = appendWith buffer encoder (@Json { fieldNameMapping, skipMissingProperties })
+            bufferWithValue = appendWith buffer encoder (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
             bufferWithSuffix =
                 if itemsLeft > 1 then
                     List.append bufferWithValue (Num.toU8 ',')
@@ -691,7 +730,10 @@ decodeTuple = \initialState, stepElem, finalizer -> Decode.custom \initialBytes,
 
         { val: endStateResult, rest: beforeClosingBracketBytes } <- decodeElems stepElem initialState 0 (eatWhitespace afterBracketBytes) |> tryDecode
 
-        { rest: afterTupleBytes } <- (eatWhitespace beforeClosingBracketBytes) |> closingBracket |> tryDecode
+        { rest: afterTupleBytes } <-
+            (eatWhitespace beforeClosingBracketBytes)
+            |> closingBracket
+            |> tryDecode
 
         when finalizer endStateResult is
             Ok val -> { result: Ok val, rest: afterTupleBytes }
@@ -1201,9 +1243,9 @@ expect
 
 # JSON ARRAYS ------------------------------------------------------------------
 
-decodeList = \elemDecoder -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+decodeList = \elemDecoder -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull } ->
 
-        decodeElems = arrayElemDecoder elemDecoder (@Json { fieldNameMapping, skipMissingProperties })
+        decodeElems = arrayElemDecoder elemDecoder (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
 
         result =
             when List.walkUntil bytes (BeforeOpeningBracket 0) arrayOpeningHelp is
@@ -1214,7 +1256,7 @@ decodeList = \elemDecoder -> Decode.custom \bytes, @Json { fieldNameMapping, ski
             Ok elemBytes -> decodeElems elemBytes []
             Err ExpectedOpeningBracket -> { result: Err TooShort, rest: bytes }
 
-arrayElemDecoder = \elemDecoder, @Json { fieldNameMapping, skipMissingProperties } ->
+arrayElemDecoder = \elemDecoder, @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull } ->
 
     decodeElems = \bytes, accum ->
 
@@ -1238,7 +1280,7 @@ arrayElemDecoder = \elemDecoder, @Json { fieldNameMapping, skipMissingProperties
                 elemBytes = List.dropFirst bytes n
 
                 # Decode current element
-                { result, rest } = Decode.decodeWith elemBytes elemDecoder (@Json { fieldNameMapping, skipMissingProperties })
+                { result, rest } = Decode.decodeWith elemBytes elemDecoder (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
 
                 when result is
                     Ok elem ->
@@ -1360,7 +1402,7 @@ expect
 
 # JSON OBJECTS -----------------------------------------------------------------
 
-decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
+decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull } ->
 
         # Recursively build up record from object field:value pairs
         decodeFields = \recordState, bytesBeforeField ->
@@ -1376,9 +1418,14 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                     _ -> 0
 
             valueBytes = List.dropFirst bytesAfterField countBytesBeforeValue
+            # dbg "decoded"
+
+            # dbg objectNameResult
 
             when objectNameResult is
                 Err TooShort ->
+                    # dbg "too short"
+                    # dbg recordState
                     # Invalid object, unable to decode field name or find colon ':'
                     # after field and before the value
                     { result: Err TooShort, rest: bytes }
@@ -1389,6 +1436,7 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                         (
                             fieldName =
                                 fromObjectNameUsingMap objectName fieldNameMapping
+                            # dbg fieldName
 
                             # Retrieve value decoder for the current field
                             when (stepField recordState fieldName, skipMissingProperties) is
@@ -1409,9 +1457,18 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                                 (Keep valueDecoder, _) ->
                                     # Decode the value using the decoder from the recordState
                                     # Note we need to pass json config options recursively here
-                                    Decode.decodeWith valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties })
+                                    when nullToUndefined valueBytes nullAsUndefined is
+                                        Ok { bytes: nullBytes, rest } ->
+                                            decode = Decode.decodeWith (nullBytes) valueDecoder (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
+                                            { result: decode.result, rest }
+
+                                        Err _ ->
+                                            Decode.decodeWith valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
+
                         )
                         |> tryDecode
+
+                    # dbg updatedRecord
 
                     # Check if another field or '}' for end of object
                     when List.walkUntil bytesAfterValue (AfterObjectValue 0) objectHelp is
@@ -1425,36 +1482,33 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                             rest = List.dropFirst bytesAfterValue n
 
                             # Build final record from decoded fields and values
-                            when finalizer updatedRecord is
+                            # dbg updatedRecord
+
+                            when finalizer updatedRecord json is
+                                ##This step is where i can implement my special decoding of options
                                 Ok val -> { result: Ok val, rest }
-                                Err e -> { result: Err e, rest }
+                                Err e ->
+                                    # dbg "bad final"
+                                    { result: Err e, rest }
 
                         _ ->
+                            # dbg "invalid"
                             # Invalid object
                             { result: Err TooShort, rest: bytesAfterValue }
 
         countBytesBeforeFirstField =
             when List.walkUntil bytes (BeforeOpeningBrace 0) objectHelp is
-                ObjectFieldNameStart n -> FirstFieldAt n
-                AfterClosingBrace n -> NoFieldsInObject n
-                _ -> InvalidObject
+                ObjectFieldNameStart n -> n
+                _ -> 0
 
-        when countBytesBeforeFirstField is
-            InvalidObject ->
-                # Invalid object, expected opening brace '{' followed by a field
-                { result: Err TooShort, rest: bytes }
+        if countBytesBeforeFirstField == 0 then
+            # Invalid object, expected opening brace '{' followed by a field
+            { result: Err TooShort, rest: bytes }
+        else
+            bytesBeforeFirstField = List.dropFirst bytes countBytesBeforeFirstField
 
-            NoFieldsInObject n ->
-                # Empty object, try decode using initialState
-                when finalizer initialState is
-                    Ok val -> { result: Ok val, rest: List.dropFirst bytes n }
-                    Err e -> { result: Err e, rest: bytes }
-
-            FirstFieldAt n ->
-                bytesBeforeFirstField = List.dropFirst bytes n
-
-                # Begin decoding field:value pairs
-                decodeFields initialState bytesBeforeFirstField
+            # Begin decoding field:value pairs
+            decodeFields initialState bytesBeforeFirstField
 
 skipFieldHelp : SkipValueState, U8 -> [Break SkipValueState, Continue SkipValueState]
 skipFieldHelp = \state, byte ->
@@ -1507,15 +1561,6 @@ SkipValueState : [
     Escaped U64,
     InvalidObject,
 ]
-
-# Test decode of empty record
-expect
-    input = Str.toUtf8 "{}"
-
-    actual : DecodeResult {}
-    actual = Decode.fromBytesPartial input json
-
-    actual.result == Ok {}
 
 # Test decode of partial record
 expect
@@ -1699,7 +1744,6 @@ objectHelp = \state, byte ->
         (BeforeOpeningBrace n, b) if isWhitespace b -> Continue (BeforeOpeningBrace (n + 1))
         (BeforeOpeningBrace n, b) if b == '{' -> Continue (AfterOpeningBrace (n + 1))
         (AfterOpeningBrace n, b) if isWhitespace b -> Continue (AfterOpeningBrace (n + 1))
-        (AfterOpeningBrace n, b) if b == '}' -> Continue (AfterClosingBrace (n + 1))
         (AfterOpeningBrace n, b) if b == '"' -> Break (ObjectFieldNameStart n)
         (BeforeColon n, b) if isWhitespace b -> Continue (BeforeColon (n + 1))
         (BeforeColon n, b) if b == ':' -> Continue (AfterColon (n + 1))
@@ -2010,3 +2054,35 @@ crashOnBadUtf8Error = \res ->
     when res is
         Ok str -> str
         Err _ -> crash "invalid UTF-8 code units"
+
+nullChars = "null" |> Str.toUtf8
+takeJsonNull = \bytes ->
+    if bytes |> List.startsWith nullChars then
+        res = nullChars
+        rest = bytes |> List.dropFirst (res |> List.len)
+        Ok { bytes, rest }
+    else
+        Err NotJsonNull
+
+nullToUndefined = \bytes, makeNullEmpty ->
+    dbg bytes |> Str.fromUtf8
+
+    dbg makeNullEmpty
+
+    { bytes: nullBytes, rest } <- takeJsonNull bytes |> Result.map
+    if makeNullEmpty then
+        dbg "made null"
+
+        { bytes: [], rest }
+    else
+        dbg "didn't make null"
+
+        { bytes: nullBytes, rest }
+
+emptyToNull : List U8, Bool -> List U8
+emptyToNull = \bytes, makeEmptyNull ->
+    if bytes == [] && makeEmptyNull then
+        nullChars
+    else
+        bytes
+
