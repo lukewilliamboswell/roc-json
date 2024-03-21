@@ -93,19 +93,20 @@ Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties : Bool, nul
     ]
 
 ## Returns a JSON `Encoder` and `Decoder`
-json = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true, nullAsUndefined: Bool.true, emptyEncodeAsNull: Bool.false }
+json = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true, nullAsUndefined: Bool.true, emptyEncodeAsNull: Bool.true }
 
 ## Returns a JSON `Encoder` and `Decoder` with configuration options
 ##
 ## **skipMissingProperties** - if `True` the decoder will skip additional properties
 ## in the json that are not present in the model. (Default: `True`)
+##
 ## **nullAsUndefined** - if `True` the decoder will convert `null` to an empty byte array.
-## This makes `{"email":null,`name`:"bob"}` decode the same as `{`name`:"bob"}`. (Default: `True`)
+## This makes `{"email":null,"name":"bob"}` decode the same as `{"name":"bob"}`. (Default: `True`)
+##
 ## **emptyEncodeAsNull** - if `True` encoders that return `[]` will result in a `null` in the
-## json when normally it would result in a record field, or list element, simply being ommitted.
-## eg:`{email:None, name:"bob"}` encodes to `{"email":null, "name":"bob"}`
-## instead of `{"name":"bob"}` (Default: `False`)
-jsonWithOptions = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true, nullAsUndefined ? Bool.true, emptyEncodeAsNull ? Bool.false } ->
+## json. If `False` when an encoder returns `[]` the record field, or list/tuple element, will be ommitted.
+## eg: `{email:@Option None, name:"bob"}` encodes to `{"email":null, "name":"bob"}` instead of `{"name":"bob"}` (Default: `True`)
+jsonWithOptions = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true, nullAsUndefined ? Bool.true, emptyEncodeAsNull ? Bool.true } ->
     @Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull }
 
 ## Mapping between Roc record fields and JSON object names
