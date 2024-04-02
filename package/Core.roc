@@ -1458,11 +1458,12 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                                     # Decode the value using the decoder from the recordState
                                     # Note we need to pass json config options recursively here
                                     when nullToUndefined valueBytes nullAsUndefined is
-                                        Ok { bytes: nullBytes, rest } ->
+                                        Null { bytes: nullBytes, rest } ->
                                             decode = Decode.decodeWith (nullBytes) valueDecoder (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
                                             { result: decode.result, rest }
 
-                                        Err _ ->
+                                        NotNull ->
+                                            dbg valueBytes
                                             Decode.decodeWith valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties, nullAsUndefined, emptyEncodeAsNull })
 
                         )
@@ -2056,28 +2057,17 @@ crashOnBadUtf8Error = \res ->
         Err _ -> crash "invalid UTF-8 code units"
 
 nullChars = "null" |> Str.toUtf8
-takeJsonNull = \bytes ->
-    if bytes |> List.startsWith nullChars then
-        res = nullChars
-        rest = bytes |> List.dropFirst (res |> List.len)
-        Ok { bytes, rest }
-    else
-        Err NotJsonNull
 
+## Returns Ok if the input is "null" or Err otherwise
+nullToUndefined : List U8, Bool -> [Null _,NotNull]
 nullToUndefined = \bytes, makeNullEmpty ->
-    dbg bytes |> Str.fromUtf8
-
-    dbg makeNullEmpty
-
-    { bytes: nullBytes, rest } <- takeJsonNull bytes |> Result.map
-    if makeNullEmpty then
-        dbg "made null"
-
-        { bytes: [], rest }
-    else
-        dbg "didn't make null"
-
-        { bytes: nullBytes, rest }
+    when bytes is
+        ['n', 'u', 'l', 'l', .. as rest] ->
+            if makeNullEmpty then 
+                Null { bytes: [], rest }
+            else 
+                Null { bytes: nullChars, rest }
+        _ -> NotNull
 
 emptyToNull : List U8, Bool -> List U8
 emptyToNull = \bytes, makeEmptyNull ->
