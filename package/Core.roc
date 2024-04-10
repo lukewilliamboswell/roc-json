@@ -2058,7 +2058,8 @@ crashOnBadUtf8Error = \res ->
 
 nullChars = "null" |> Str.toUtf8
 
-## Returns Ok if the input is "null" or Err otherwise
+## Returns `Null` if the input starts with "null"
+## If makeNullEmpty is true Null{bytes} will be empty
 nullToEmpty : List U8, Bool -> [Null _, NotNull]
 nullToEmpty = \bytes, makeNullEmpty ->
     when bytes is
