@@ -99,7 +99,7 @@ expect
         { name: "hi", lastName: none {}, age: some 1u8 }
     encoded =
         toEncode
-        |> Encode.toBytes (Core.jsonWithOptions { emptyEncodeAsNull: Bool.false })
+        |> Encode.toBytes (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption {record:Bool.false} })
         |> Str.fromUtf8
 
     expected =

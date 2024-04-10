@@ -39,7 +39,7 @@ expect
     encoded =
         dat : { maybe : Option U8, other : Str }
         dat = { maybe: none {}, other: "hi" }
-        Encode.toBytes dat Core.json
+        Encode.toBytes dat (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { record: Bool.false } })
         |> Str.fromUtf8
 
     expected = Ok
@@ -59,19 +59,6 @@ expect
         {"maybe":10}
         """
     expected == encoded
-# Encode Option tuple
-expect
-    encoded =
-        dat : (U8, Option U8, Option Str, Str)
-        dat = (10, none {}, some "opt", "hi")
-        Encode.toBytes dat Core.json
-        |> Str.fromUtf8
-
-    expected = Ok
-        """
-        [10,"opt","hi"]
-        """
-    expected == encoded
 # Encode Option list
 expect
     encoded =
@@ -82,13 +69,12 @@ expect
     expected = Ok "[1,2,3]"
     expected == encoded
 
-nullJson=Core.jsonWithOptions {emptyEncodeAsNull:Bool.true}
 # Encode Option None record with null
 expect
     encoded =
         dat : { maybe : Option U8, other : Str }
         dat = { maybe: none {}, other: "hi" }
-        Encode.toBytes dat nullJson
+        Encode.toBytes dat Core.json
         |> Str.fromUtf8
 
     expected = Ok
@@ -101,7 +87,7 @@ expect
     encoded =
         dat : (U8, Option U8, Option Str, Str)
         dat = (10, none {}, some "opt", "hi")
-        Encode.toBytes dat nullJson
+        Encode.toBytes dat Core.json
         |> Str.fromUtf8
 
     expected = Ok
@@ -113,7 +99,7 @@ expect
 expect
     encoded =
         dat = [some 1, none {}, some 2, some 3]
-        Encode.toBytes dat nullJson
+        Encode.toBytes dat (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { list: Bool.true } })
         |> Str.fromUtf8
 
     expected = Ok "[1,null,2,3]"
@@ -170,18 +156,14 @@ expect
     expected == decoded
 
 # Decode Option Tuple
-# This doesn't really make sense unless none is encoded as "null", but that could be a worthwhile option
-
-# expect
-#     decoded:Result(Option U8,Option U8 ,Option U8  ) _
-#     decoded =
-#         """
-#         [1,2]
-#         """
-#         |> Str.toUtf8
-#         |> Decode.fromBytes Core.json
-#     expected = Ok (some 1,none {}, some 2)
-#     expected == decoded
+expect
+    decoded : Result (Option U8, Option U8, Option U8) _
+    decoded =
+        "[1,null,2]"
+        |> Str.toUtf8
+        |> Decode.fromBytes Core.json
+    expected = Ok (some 1, none {}, some 2)
+    expected == decoded
 
 # null decode
 expect

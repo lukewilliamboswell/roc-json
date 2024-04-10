@@ -71,7 +71,7 @@ expect
         """
         |> json
         |> Str.toUtf8
-        |> Decode.fromBytes (Core.jsonWithOptions { emptyEncodeAsNull: Bool.false, nullDecodeAsEmpty: Bool.false })
+        |> Decode.fromBytes (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { record: Bool.false }, nullDecodeAsEmpty: Bool.false })
 
     expected = Ok ({ age: 1u8, name: null {}, lastName: none {} })
     expected == decoded
@@ -81,7 +81,8 @@ expect
     encoded =
         dat : OptionTest
         dat = { lastName: none {}, name: null {}, age: 1 }
-        Encode.toBytes dat (Core.jsonWithOptions { emptyEncodeAsNull: Bool.false })
+        dat
+        |> Encode.toBytes (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { record: Bool.false } })
         |> Str.fromUtf8
 
     expected =
