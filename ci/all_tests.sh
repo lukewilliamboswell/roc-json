@@ -33,5 +33,7 @@ for ROC_FILE in $EXAMPLES_DIR/*.roc; do
     expect ci/expect_scripts/$NO_EXT_NAME.exp
 done
 
+# TODO roc test everything
+
 # test building docs website
 $ROC docs $PACKAGE_DIR/main.roc

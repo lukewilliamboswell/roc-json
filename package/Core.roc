@@ -312,22 +312,26 @@ encodeRecord = \fields ->
     Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
         writeRecord = \{ buffer, fieldsLeft }, { key, value } ->
 
-            fieldName = toObjectNameUsingMap key fieldNameMapping
+            fieldValue = [] |> appendWith value (@Json { fieldNameMapping, skipMissingProperties })
+            # If our encoder returned [] we just skip the field
+            if fieldValue == [] then
+                { buffer, fieldsLeft: fieldsLeft - 1 }
+            else
+                fieldName = toObjectNameUsingMap key fieldNameMapping
+                bufferWithKeyValue =
+                    List.append buffer (Num.toU8 '"')
+                    |> List.concat (Str.toUtf8 fieldName)
+                    |> List.append (Num.toU8 '"')
+                    |> List.append (Num.toU8 ':') # Note we need to encode using the json config here
+                    |> List.concat fieldValue
 
-            bufferWithKeyValue =
-                List.append buffer (Num.toU8 '"')
-                |> List.concat (Str.toUtf8 fieldName)
-                |> List.append (Num.toU8 '"')
-                |> List.append (Num.toU8 ':') # Note we need to encode using the json config here
-                |> appendWith value (@Json { fieldNameMapping, skipMissingProperties })
+                bufferWithSuffix =
+                    if fieldsLeft > 1 then
+                        List.append bufferWithKeyValue (Num.toU8 ',')
+                    else
+                        bufferWithKeyValue
 
-            bufferWithSuffix =
-                if fieldsLeft > 1 then
-                    List.append bufferWithKeyValue (Num.toU8 ',')
-                else
-                    bufferWithKeyValue
-
-            { buffer: bufferWithSuffix, fieldsLeft: fieldsLeft - 1 }
+                { buffer: bufferWithSuffix, fieldsLeft: fieldsLeft - 1 }
 
         bytesHead = List.append bytes (Num.toU8 '{')
         { buffer: bytesWithRecord } = List.walk fields { buffer: bytesHead, fieldsLeft: List.len fields } writeRecord
@@ -379,16 +383,21 @@ toYellingCase = \str ->
 encodeTuple = \elems ->
     Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
         writeTuple = \{ buffer, elemsLeft }, elemEncoder ->
-            bufferWithElem =
-                appendWith buffer elemEncoder (@Json { fieldNameMapping, skipMissingProperties })
+            beforeBufferLen = buffer |> List.len
 
-            bufferWithSuffix =
-                if elemsLeft > 1 then
-                    List.append bufferWithElem (Num.toU8 ',')
-                else
-                    bufferWithElem
+            bufferWithElem = appendWith buffer (elemEncoder) (@Json { fieldNameMapping, skipMissingProperties })
 
-            { buffer: bufferWithSuffix, elemsLeft: elemsLeft - 1 }
+            # If our encoder returned [] we just skip the elem
+            if bufferWithElem |> List.len == beforeBufferLen then
+                { buffer: bufferWithElem, elemsLeft: elemsLeft - 1 }
+            else
+                bufferWithSuffix =
+                    if elemsLeft > 1 then
+                        List.append bufferWithElem (Num.toU8 ',')
+                    else
+                        bufferWithElem
+
+                { buffer: bufferWithSuffix, elemsLeft: elemsLeft - 1 }
 
         bytesHead = List.append bytes (Num.toU8 '[')
         { buffer: bytesWithRecord } = List.walk elems { buffer: bytesHead, elemsLeft: List.len elems } writeTuple
@@ -438,6 +447,7 @@ expect
 
     actual == expected
 
+decodeU8 : Decoder _ _
 decodeU8 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -454,6 +464,7 @@ expect
     actual = Str.toUtf8 "255" |> Decode.fromBytes json
     actual == Ok 255u8
 
+decodeU16 : Decoder _ _
 decodeU16 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -470,6 +481,7 @@ expect
     actual = Str.toUtf8 "65535" |> Decode.fromBytes json
     actual == Ok 65_535u16
 
+decodeU32 : Decoder _ _
 decodeU32 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -486,6 +498,7 @@ expect
     actual = Str.toUtf8 "4000000000" |> Decode.fromBytes json
     actual == Ok 4_000_000_000u32
 
+decodeU64 : Decoder _ _
 decodeU64 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -502,6 +515,7 @@ expect
     actual = Str.toUtf8 "18446744073709551614" |> Decode.fromBytes json
     actual == Ok 18_446_744_073_709_551_614u64
 
+decodeU128 : Decoder _ _
 decodeU128 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -518,6 +532,7 @@ expect
     actual = Str.toUtf8 "1234567" |> Decode.fromBytesPartial json
     actual.result == Ok 1234567u128
 
+decodeI8 : Decoder _ _
 decodeI8 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -534,6 +549,7 @@ expect
     actual = Str.toUtf8 "-125" |> Decode.fromBytesPartial json
     actual.result == Ok -125i8
 
+decodeI16 : Decoder _ _
 decodeI16 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -550,6 +566,7 @@ expect
     actual = Str.toUtf8 "-32768" |> Decode.fromBytesPartial json
     actual.result == Ok -32_768i16
 
+decodeI32 : Decoder _ _
 decodeI32 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -566,6 +583,7 @@ expect
     actual = Str.toUtf8 "-2147483648" |> Decode.fromBytesPartial json
     actual.result == Ok -2_147_483_648i32
 
+decodeI64 : Decoder _ _
 decodeI64 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -582,6 +600,7 @@ expect
     actual = Str.toUtf8 "-9223372036854775808" |> Decode.fromBytesPartial json
     actual.result == Ok -9_223_372_036_854_775_808i64
 
+decodeI128 : Decoder _ _
 decodeI128 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -593,6 +612,7 @@ decodeI128 = Decode.custom \bytes, @Json {} ->
 
     { result, rest }
 
+decodeF32 : Decoder _ _
 decodeF32 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -612,6 +632,7 @@ expect
 
     Result.withDefault numStr "" == "0.00012339999375399202"
 
+decodeF64 : Decoder _ _
 decodeF64 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -631,6 +652,7 @@ expect
 
     Result.withDefault numStr "" == "0.0001234"
 
+decodeDec : Decoder _ _
 decodeDec = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
 
@@ -649,6 +671,7 @@ expect
 
     actual.result == Ok 12.0034dec
 
+decodeBool : Decoder _ _
 decodeBool = Decode.custom \bytes, @Json {} ->
     when bytes is
         ['f', 'a', 'l', 's', 'e', ..] -> { result: Ok Bool.false, rest: List.dropFirst bytes 5 }
@@ -667,6 +690,7 @@ expect
     expected = Ok Bool.false
     actual.result == expected
 
+decodeTuple : _, (_, _ -> [Next (Decoder _ _), TooLong]), (_ -> _) -> Decoder _ _
 decodeTuple = \initialState, stepElem, finalizer -> Decode.custom \initialBytes, @Json {} ->
         # NB: the stepper function must be passed explicitly until #2894 is resolved.
         decodeElems = \stepper, state, index, bytes ->
@@ -952,7 +976,8 @@ expect
 # Decode a Json string primitive into a RocStr
 #
 # Note that decodeStr does not handle leading whitespace, any whitespace must be
-# handled in json list or record decodin.
+# handled in json list or record decoding.
+decodeString : Decoder _ _
 decodeString = Decode.custom \bytes, @Json {} ->
 
     { taken: strBytes, rest } = takeJsonString bytes
@@ -1201,6 +1226,7 @@ expect
 
 # JSON ARRAYS ------------------------------------------------------------------
 
+decodeList : Decoder _ _ -> Decoder _ _
 decodeList = \elemDecoder -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
 
         decodeElems = arrayElemDecoder elemDecoder (@Json { fieldNameMapping, skipMissingProperties })
@@ -1360,6 +1386,7 @@ expect
 
 # JSON OBJECTS -----------------------------------------------------------------
 
+decodeRecord : _, (_, _ -> [Keep (Decoder _ _), Skip]), (_, _ -> _) -> Decoder _ _
 decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties } ->
 
         # Recursively build up record from object field:value pairs
@@ -1425,7 +1452,7 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                             rest = List.dropFirst bytesAfterValue n
 
                             # Build final record from decoded fields and values
-                            when finalizer updatedRecord is
+                            when finalizer updatedRecord (@Json { fieldNameMapping, skipMissingProperties }) is
                                 Ok val -> { result: Ok val, rest }
                                 Err e -> { result: Err e, rest }
 
