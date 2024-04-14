@@ -33,5 +33,22 @@ for ROC_FILE in $EXAMPLES_DIR/*.roc; do
     expect ci/expect_scripts/$NO_EXT_NAME.exp
 done
 
+# `roc test` every roc file if it contains a test, skip roc_nightly folder
+find . -type d -name "roc_nightly" -prune -o -type f -name "*.roc" -print | while read file; do
+    if grep -qE '^\s*expect(\s+|$)' "$file"; then
+
+        # don't exit script if test_command fails
+        set +e
+        test_command=$($ROC test "$file")
+        test_exit_code=$?
+        set -e
+
+        if [[ $test_exit_code -ne 0 && $test_exit_code -ne 2 ]]; then
+            exit $test_exit_code
+        fi
+    fi
+
+done
+
 # test building docs website
 $ROC docs $PACKAGE_DIR/main.roc

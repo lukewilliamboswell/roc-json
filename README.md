@@ -1,7 +1,7 @@
 
 # Json Package for Roc 🤘
 
-:warning: `--linker=legacy` is necessary for this package because of [this roc issue](https://github.com/roc-lang/roc/issues/3609) 
+:warning: On linux `--linker=legacy` is necessary for this package because of [this roc issue](https://github.com/roc-lang/roc/issues/3609) 
 
 ## Example 
 
