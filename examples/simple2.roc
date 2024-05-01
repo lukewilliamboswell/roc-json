@@ -7,7 +7,7 @@ app "simple2"
         cli.Stdout,
         cli.Task.{ await },
         json.Core.{ jsonWithOptions },
-        Decode.{ DecodeResult, fromBytesPartial },
+        Decode.{ fromBytesPartial },
         "data.json" as requestBody : List U8, 
     ]
     provides [main] to cli

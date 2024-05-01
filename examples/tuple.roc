@@ -6,7 +6,7 @@ app "simple1"
     imports [
         cli.Stdout,
         json.Core.{ json },
-        Decode.{ DecodeResult, fromBytesPartial },
+        Decode.{ fromBytesPartial },
     ]
     provides [main] to cli
 
