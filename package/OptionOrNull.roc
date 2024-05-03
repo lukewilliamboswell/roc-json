@@ -4,12 +4,9 @@
 ##
 ## Ensure you set `nullAsUndefined` and `emptyEncodeAsNull` to false in your jsonOptions
 ## eg: `core.jsonwithoptions { emptyencodeasnull: bool.false, nullasundefined: bool.false }`
-interface OptionOrNull
-    exposes [none, null, some, get, getResult, from]
-    imports [
-        Encode,
-        Core,
-    ]
+module [none, null, some, get, getResult, from]
+
+import Core
 
 OptionOrNull val := [Some val, None, Null]
     implements [

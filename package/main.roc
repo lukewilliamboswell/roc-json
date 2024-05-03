@@ -1,7 +1,5 @@
-package "json"
-    exposes [
-        Core,
-        Option,
-        OptionOrNull
-    ]
-    packages {}
+package [
+    Core,
+    Option,
+    OptionOrNull,
+] {}

@@ -30,27 +30,18 @@
 ##
 ## expect name == Ok (Str.toUtf8 "\"Röc Lang\"")
 ## ```
-interface Core
-    exposes [
-        Json,
-        json,
-        jsonWithOptions,
-        encodeAsNullOption,
-    ]
+module [
+    Json,
+    json,
+    jsonWithOptions,
+    encodeAsNullOption,
+]
 
-    imports [
-        Encode.{
-            Encoder,
-            EncoderFormatting,
-            appendWith,
-        },
-    ]
-
-## An opaque type with the `EncoderFormatting` and
+## An opaque type with the `Encode.EncoderFormatting` and
 ## `DecoderFormatting` abilities.
 Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties : Bool, nullDecodeAsEmpty : Bool, emptyEncodeAsNull : EncodeAsNull }
     implements [
-        EncoderFormatting {
+        Encode.EncoderFormatting {
             u8: encodeU8,
             u16: encodeU16,
             u32: encodeU32,
@@ -93,10 +84,10 @@ Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties : Bool, nul
         },
     ]
 
-## Returns a JSON `Encoder` and `Decoder`
+## Returns a JSON `Encode.Encoder` and `Decoder`
 json = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true, nullDecodeAsEmpty: Bool.true, emptyEncodeAsNull: defaultEncodeAsNull }
 
-## Returns a JSON `Encoder` and `Decoder` with configuration options
+## Returns a JSON `Encode.Encoder` and `Decoder` with configuration options
 ##
 ## **skipMissingProperties** - if `True` the decoder will skip additional properties
 ## in the json that are not present in the model. (Default: `True`)
@@ -317,7 +308,7 @@ encodeList = \lst, encodeElem ->
 
             bufferWithElem =
                 elemBytes =
-                    appendWith [] (encodeElem elem) (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
+                    Encode.appendWith [] (encodeElem elem) (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
                     |> emptyToNull emptyEncodeAsNull.list
                 buffer |> List.concat elemBytes
 
@@ -354,7 +345,7 @@ encodeRecord = \fields ->
 
             fieldValue =
                 []
-                |> appendWith value (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
+                |> Encode.appendWith value (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
                 |> emptyToNull emptyEncodeAsNull.record
 
             # If our encoder returned [] we just skip the field
@@ -433,7 +424,7 @@ encodeTuple = \elems ->
 
             bufferWithElem =
                 elemBytes =
-                    appendWith [] (elemEncoder) (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
+                    Encode.appendWith [] (elemEncoder) (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
                     |> emptyToNull emptyEncodeAsNull.tuple
                 buffer |> List.concat elemBytes
             # If our encoder returned [] we just skip the elem
@@ -466,7 +457,7 @@ encodeTag = \name, payload ->
     Encode.custom \bytes, @Json jsonFmt ->
         # Idea: encode `A v1 v2` as `{"A": [v1, v2]}`
         writePayload = \{ buffer, itemsLeft }, encoder ->
-            bufferWithValue = appendWith buffer encoder (@Json jsonFmt)
+            bufferWithValue = Encode.appendWith buffer encoder (@Json jsonFmt)
             bufferWithSuffix =
                 if itemsLeft > 1 then
                     List.append bufferWithValue (Num.toU8 ',')
@@ -1488,7 +1479,7 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
 
                             # Build final record from decoded fields and values
                             when finalizer updatedRecord json is
-                                ##This step is where i can implement my special decoding of options
+                                ## This step is where i can implement my special decoding of options
                                 Ok val -> { result: Ok val, rest }
                                 Err e ->
                                     { result: Err e, rest }
