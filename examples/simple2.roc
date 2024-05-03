@@ -7,15 +7,14 @@ app "simple2"
         cli.Stdout,
         cli.Task.{ await },
         json.Core.{ jsonWithOptions },
-        Decode.{ DecodeResult, fromBytesPartial },
         "data.json" as requestBody : List U8, 
     ]
     provides [main] to cli
 
 main =
     decoder = jsonWithOptions { }
-    decoded : DecodeResult (List DataRequest)
-    decoded = fromBytesPartial requestBody decoder
+    decoded : Decode.DecodeResult (List DataRequest)
+    decoded = Decode.fromBytesPartial requestBody decoder
 
     when decoded.result is
         Ok list -> 
