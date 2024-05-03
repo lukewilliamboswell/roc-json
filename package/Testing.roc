@@ -1,9 +1,6 @@
-interface Testing
-    exposes []
-    imports [
-        Encode,
-        Core,
-    ]
+module []
+
+import Core
 
 Option val := [None, Some val]
     implements [

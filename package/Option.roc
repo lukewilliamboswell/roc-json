@@ -1,11 +1,8 @@
 ## Represents either a value, or nothing
 ## If you need to distinguish between a missing field and a `null` field you should use `OptionOrNull`
-interface Option
-    exposes [none, some, get, getResult, from, fromResult]
-    imports [
-        Encode,
-        Core,
-    ]
+module [none, some, get, getResult, from, fromResult]
+
+import Core
 
 Option val := [Some val, None]
     implements [
@@ -99,7 +96,7 @@ expect
         { name: "hi", lastName: none {}, age: some 1u8 }
     encoded =
         toEncode
-        |> Encode.toBytes (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption {record:Bool.false} })
+        |> Encode.toBytes (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { record: Bool.false } })
         |> Str.fromUtf8
 
     expected =
