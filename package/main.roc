@@ -1,5 +1,5 @@
 package [
-    Core,
+    Json,
     Option,
     OptionOrNull,
 ] {}

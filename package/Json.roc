@@ -32,7 +32,7 @@
 ## ```
 module [
     Json,
-    json,
+    utf8,
     jsonWithOptions,
     encodeAsNullOption,
 ]
@@ -85,7 +85,7 @@ Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties : Bool, nul
     ]
 
 ## Returns a JSON `Encode.Encoder` and `Decoder`
-json = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true, nullDecodeAsEmpty: Bool.true, emptyEncodeAsNull: defaultEncodeAsNull }
+utf8 = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true, nullDecodeAsEmpty: Bool.true, emptyEncodeAsNull: defaultEncodeAsNull }
 
 ## Returns a JSON `Encode.Encoder` and `Decoder` with configuration options
 ##
@@ -199,7 +199,7 @@ encodeBool = \b ->
 # Test encode boolean
 expect
     input = [Bool.true, Bool.false]
-    actual = Encode.toBytes input json
+    actual = Encode.toBytes input utf8
     expected = Str.toUtf8 "[true,false]"
 
     actual == expected
@@ -280,7 +280,7 @@ expect escapedByteToJson '"' == ['\\', '"']
 # Test encode small string
 expect
     input = "G'day"
-    actual = Encode.toBytes input json
+    actual = Encode.toBytes input utf8
     expected = Str.toUtf8 "\"G'day\""
 
     actual == expected
@@ -288,7 +288,7 @@ expect
 # Test encode large string
 expect
     input = "the quick brown fox jumps over the lazy dog"
-    actual = Encode.toBytes input json
+    actual = Encode.toBytes input utf8
     expected = Str.toUtf8 "\"the quick brown fox jumps over the lazy dog\""
 
     actual == expected
@@ -296,7 +296,7 @@ expect
 # Test encode with escapes e.g. "\r" encodes to "\\r"
 expect
     input = "the quick brown fox jumps over the lazy doga\r\nbc\\\"xz"
-    actual = Encode.toBytes input json
+    actual = Encode.toBytes input utf8
     expected = Str.toUtf8 "\"the quick brown fox jumps over the lazy doga\\r\\nbc\\\\\\\"xz\""
 
     actual == expected
@@ -334,7 +334,7 @@ encodeList = \lst, encodeElem ->
 expect
     input : List F64
     input = [-1, 0.00001, 1e12, 2.0e-2, 0.0003, 43]
-    actual = Encode.toBytes input json
+    actual = Encode.toBytes input utf8
     expected = Str.toUtf8 "[-1,0.00001,1000000000000,0.02,0.0003,43]"
 
     actual == expected
@@ -448,7 +448,7 @@ encodeTuple = \elems ->
 # Test encode of tuple
 expect
     input = ("The Answer is", 42)
-    actual = Encode.toBytes input json
+    actual = Encode.toBytes input utf8
     expected = Str.toUtf8 "[\"The Answer is\",42]"
 
     actual == expected
@@ -501,7 +501,7 @@ decodeU8 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of U8
 expect
-    actual = Str.toUtf8 "255" |> Decode.fromBytes json
+    actual = Str.toUtf8 "255" |> Decode.fromBytes utf8
     actual == Ok 255u8
 
 decodeU16 = Decode.custom \bytes, @Json {} ->
@@ -517,7 +517,7 @@ decodeU16 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of U16
 expect
-    actual = Str.toUtf8 "65535" |> Decode.fromBytes json
+    actual = Str.toUtf8 "65535" |> Decode.fromBytes utf8
     actual == Ok 65_535u16
 
 decodeU32 = Decode.custom \bytes, @Json {} ->
@@ -533,7 +533,7 @@ decodeU32 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of U32
 expect
-    actual = Str.toUtf8 "4000000000" |> Decode.fromBytes json
+    actual = Str.toUtf8 "4000000000" |> Decode.fromBytes utf8
     actual == Ok 4_000_000_000u32
 
 decodeU64 = Decode.custom \bytes, @Json {} ->
@@ -549,7 +549,7 @@ decodeU64 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of U64
 expect
-    actual = Str.toUtf8 "18446744073709551614" |> Decode.fromBytes json
+    actual = Str.toUtf8 "18446744073709551614" |> Decode.fromBytes utf8
     actual == Ok 18_446_744_073_709_551_614u64
 
 decodeU128 = Decode.custom \bytes, @Json {} ->
@@ -565,7 +565,7 @@ decodeU128 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of U128
 expect
-    actual = Str.toUtf8 "1234567" |> Decode.fromBytesPartial json
+    actual = Str.toUtf8 "1234567" |> Decode.fromBytesPartial utf8
     actual.result == Ok 1234567u128
 
 decodeI8 = Decode.custom \bytes, @Json {} ->
@@ -581,7 +581,7 @@ decodeI8 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of I8
 expect
-    actual = Str.toUtf8 "-125" |> Decode.fromBytesPartial json
+    actual = Str.toUtf8 "-125" |> Decode.fromBytesPartial utf8
     actual.result == Ok -125i8
 
 decodeI16 = Decode.custom \bytes, @Json {} ->
@@ -597,7 +597,7 @@ decodeI16 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of I16
 expect
-    actual = Str.toUtf8 "-32768" |> Decode.fromBytesPartial json
+    actual = Str.toUtf8 "-32768" |> Decode.fromBytesPartial utf8
     actual.result == Ok -32_768i16
 
 decodeI32 = Decode.custom \bytes, @Json {} ->
@@ -613,7 +613,7 @@ decodeI32 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of I32
 expect
-    actual = Str.toUtf8 "-2147483648" |> Decode.fromBytesPartial json
+    actual = Str.toUtf8 "-2147483648" |> Decode.fromBytesPartial utf8
     actual.result == Ok -2_147_483_648i32
 
 decodeI64 = Decode.custom \bytes, @Json {} ->
@@ -629,7 +629,7 @@ decodeI64 = Decode.custom \bytes, @Json {} ->
 
 # Test decode of I64
 expect
-    actual = Str.toUtf8 "-9223372036854775808" |> Decode.fromBytesPartial json
+    actual = Str.toUtf8 "-9223372036854775808" |> Decode.fromBytesPartial utf8
     actual.result == Ok -9_223_372_036_854_775_808i64
 
 decodeI128 = Decode.custom \bytes, @Json {} ->
@@ -657,7 +657,7 @@ decodeF32 = Decode.custom \bytes, @Json {} ->
 # Test decode of F32
 expect
     actual : DecodeResult F32
-    actual = Str.toUtf8 "12.34e-5" |> Decode.fromBytesPartial json
+    actual = Str.toUtf8 "12.34e-5" |> Decode.fromBytesPartial utf8
     numStr = actual.result |> Result.map Num.toStr
 
     Result.withDefault numStr "" == "0.00012339999375399202"
@@ -676,7 +676,7 @@ decodeF64 = Decode.custom \bytes, @Json {} ->
 # Test decode of F64
 expect
     actual : DecodeResult F64
-    actual = Str.toUtf8 "12.34e-5" |> Decode.fromBytesPartial json
+    actual = Str.toUtf8 "12.34e-5" |> Decode.fromBytesPartial utf8
     numStr = actual.result |> Result.map Num.toStr
 
     Result.withDefault numStr "" == "0.0001234"
@@ -695,7 +695,7 @@ decodeDec = Decode.custom \bytes, @Json {} ->
 # Test decode of Dec
 expect
     actual : DecodeResult Dec
-    actual = Str.toUtf8 "12.0034" |> Decode.fromBytesPartial json
+    actual = Str.toUtf8 "12.0034" |> Decode.fromBytesPartial utf8
 
     actual.result == Ok 12.0034dec
 
@@ -707,13 +707,13 @@ decodeBool = Decode.custom \bytes, @Json {} ->
 
 # Test decode of Bool
 expect
-    actual = "true\n" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "true\n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Ok Bool.true
     actual.result == expected
 
 # Test decode of Bool
 expect
-    actual = "false ]\n" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "false ]\n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Ok Bool.false
     actual.result == expected
 
@@ -754,14 +754,14 @@ decodeTuple = \initialState, stepElem, finalizer -> Decode.custom \initialBytes,
 # Test decode of tuple
 expect
     input = Str.toUtf8 "[\"The Answer is\",42]"
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     actual.result == Ok ("The Answer is", 42)
 
 # Test decode with whitespace
 expect
     input = Str.toUtf8 "[ 123,\t456\n]"
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
     expected = Ok (123, 456)
 
     actual.result == expected
@@ -882,122 +882,122 @@ isValidEnd = \b ->
         _ -> Bool.false
 
 expect
-    actual = "0.0" |> Str.toUtf8 |> Decode.fromBytes json
+    actual = "0.0" |> Str.toUtf8 |> Decode.fromBytes utf8
     expected = Ok 0.0dec
     actual == expected
 
 expect
-    actual = "0" |> Str.toUtf8 |> Decode.fromBytes json
+    actual = "0" |> Str.toUtf8 |> Decode.fromBytes utf8
     expected = Ok 0u8
     actual == expected
 
 expect
-    actual = "1 " |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "1 " |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = { result: Ok 1dec, rest: [' '] }
     actual == expected
 
 expect
-    actual = "2]" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "2]" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = { result: Ok 2u64, rest: [']'] }
     actual == expected
 
 expect
-    actual = "30,\n" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "30,\n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = { result: Ok 30i64, rest: [',', '\n'] }
     actual == expected
 
 expect
     actual : DecodeResult U16
-    actual = "+1" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "+1" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = { result: Err TooShort, rest: ['+', '1'] }
     actual == expected
 
 expect
     actual : DecodeResult U16
-    actual = ".0" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = ".0" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = { result: Err TooShort, rest: ['.', '0'] }
     actual == expected
 
 expect
     actual : DecodeResult U64
-    actual = "-.1" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "-.1" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     actual.result == Err TooShort
 
 expect
     actual : DecodeResult Dec
-    actual = "72" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "72" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Ok 72dec
     actual.result == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "-0" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "-0" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Ok 0dec
     actual.result == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "-7" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "-7" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Ok -7dec
     actual.result == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "-0\n" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "-0\n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = { result: Ok 0dec, rest: ['\n'] }
     actual == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "123456789000 \n" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "123456789000 \n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = { result: Ok 123456789000dec, rest: [' ', '\n'] }
     actual == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "-12.03" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "-12.03" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Ok -12.03
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "-12." |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "-12." |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Err TooShort
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "01.1" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "01.1" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Err TooShort
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = ".0" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = ".0" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Err TooShort
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "1.e1" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "1.e1" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Err TooShort
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "-1.2E" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "-1.2E" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Err TooShort
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "0.1e+" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "0.1e+" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Err TooShort
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "-03" |> Str.toUtf8 |> Decode.fromBytesPartial json
+    actual = "-03" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
     expected = Err TooShort
     actual.result == expected
 
@@ -1223,7 +1223,7 @@ expect
 # Test decode simple string
 expect
     input = "\"hello\", " |> Str.toUtf8
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
     expected = Ok "hello"
 
     actual.result == expected
@@ -1231,7 +1231,7 @@ expect
 # Test decode string with extended and shorthand json escapes
 expect
     input = "\"h\\\"\\u0065llo\\n\"]\n" |> Str.toUtf8
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
     expected = Ok "h\"ello\n"
 
     actual.result == expected
@@ -1239,7 +1239,7 @@ expect
 # Test json string decoding with escapes
 expect
     input = Str.toUtf8 "\"a\r\nbc\\txz\"\t\n,  "
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
     expected = Ok "a\r\nbc\txz"
 
     actual.result == expected
@@ -1249,7 +1249,7 @@ expect
     input = Str.toUtf8 "null"
 
     actual : DecodeResult Str
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     Result.isErr actual.result
 
@@ -1361,7 +1361,7 @@ expect
     input = Str.toUtf8 "[ ]"
 
     actual : DecodeResult (List U8)
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     actual.result == Ok []
 
@@ -1370,7 +1370,7 @@ expect
     input = Str.toUtf8 "\n[\t 1 , 2  , 3]"
 
     actual : DecodeResult (List U64)
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok [1, 2, 3]
 
@@ -1381,7 +1381,7 @@ expect
     input = Str.toUtf8 "\n\t [\n \"one\"\r , \"two\" , \n\"3\"\t]"
 
     actual : DecodeResult (List Str)
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
     expected = Ok ["one", "two", "3"]
 
     actual.result == expected
@@ -1419,9 +1419,9 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
         # Recursively build up record from object field:value pairs
         decodeFields = \recordState, bytesBeforeField ->
 
-            # Decode the json string field name
+            # Decode the JSON string field name
             { result: objectNameResult, rest: bytesAfterField } =
-                Decode.decodeWith bytesBeforeField decodeString json
+                Decode.decodeWith bytesBeforeField decodeString utf8
 
             # Count the bytes until the field value
             countBytesBeforeValue =
@@ -1478,7 +1478,7 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                             rest = List.dropFirst bytesAfterValue n
 
                             # Build final record from decoded fields and values
-                            when finalizer updatedRecord json is
+                            when finalizer updatedRecord utf8 is
                                 ## This step is where i can implement my special decoding of options
                                 Ok val -> { result: Ok val, rest }
                                 Err e ->
@@ -1558,7 +1558,7 @@ SkipValueState : [
 expect
     input = Str.toUtf8 "{\"extraField\":2, \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1569,7 +1569,7 @@ expect
 expect
     input = Str.toUtf8 "[{\"ownerName\": \"Farmer Joe\", \"extraField\":2}]"
     actual : DecodeResult (List { ownerName : Str })
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok [{ ownerName: "Farmer Joe" }]
 
@@ -1580,7 +1580,7 @@ expect
 expect
     input = Str.toUtf8 "{\"value\": {\"ownerName\": \"Farmer Joe\",\"extraField\":2}}"
     actual : DecodeResult { value : { ownerName : Str } }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { value: { ownerName: "Farmer Joe" } }
 
@@ -1591,7 +1591,7 @@ expect
 expect
     input = Str.toUtf8 "{\"value\": {\"ownerName\": \"Farmer Joe\", \"extraField\":2}, \"extraField\":2}"
     actual : DecodeResult { value : { ownerName : Str } }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { value: { ownerName: "Farmer Joe" } }
 
@@ -1602,7 +1602,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\":2, \"ownerName\": \"Farmer Joe\", \"extraField2\":2 }"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1613,7 +1613,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": \"abc\", \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1624,7 +1624,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": \"a,bc\", \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1635,7 +1635,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": \"a\\\"bc\", \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1646,7 +1646,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": [1,2,3], \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1657,7 +1657,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": [1,[4,5,[[9],6,7]],3], \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1668,7 +1668,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": [\"a\", [\"bc]]]def\"]], \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1679,7 +1679,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": [\"a\", [\"b\\cdef\"]], \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1690,7 +1690,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6 }, \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1701,7 +1701,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"abcd\" } }, \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1712,7 +1712,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab}}}}}cd\" } }, \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
@@ -1723,7 +1723,7 @@ expect
 expect
     input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab\\cd\" } }, \"ownerName\": \"Farmer Joe\"}"
     actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input json
+    actual = Decode.fromBytesPartial input utf8
 
     expected = Ok { ownerName: "Farmer Joe" }
 
