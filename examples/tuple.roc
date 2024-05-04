@@ -5,13 +5,13 @@ app [main] {
 
 import cli.Task
 import cli.Stdout
-import json.Core
+import json.Json
 
 main =
     bytes = Str.toUtf8 "[ [ 123,\n\"apples\" ], [  456,  \"oranges\" ]]"
 
     decoded : Decode.DecodeResult (List FruitCount)
-    decoded = Decode.fromBytesPartial bytes Core.json
+    decoded = Decode.fromBytesPartial bytes Json.utf8
 
     when decoded.result is
         Ok tuple -> Stdout.line! "Successfully decoded tuple, got $(toStr tuple)"

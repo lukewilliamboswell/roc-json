@@ -33,7 +33,7 @@
 module [
     Json,
     utf8,
-    jsonWithOptions,
+    utf8With,
     encodeAsNullOption,
 ]
 
@@ -99,8 +99,8 @@ utf8 = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true, null
 ## json. If `False` when an encoder returns `[]` the record field, or list/tuple element, will be ommitted.
 ## eg: `{email:@Option None, name:"bob"}` encodes to `{"email":null, "name":"bob"}` instead of `{"name":"bob"}` (Default: `True`)
 
-jsonWithOptions : { fieldNameMapping ? FieldNameMapping, skipMissingProperties ? Bool, nullDecodeAsEmpty ? Bool, emptyEncodeAsNull ? EncodeAsNull } -> Json
-jsonWithOptions = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true, nullDecodeAsEmpty ? Bool.true, emptyEncodeAsNull ? defaultEncodeAsNull } ->
+utf8With : { fieldNameMapping ? FieldNameMapping, skipMissingProperties ? Bool, nullDecodeAsEmpty ? Bool, emptyEncodeAsNull ? EncodeAsNull } -> Json
+utf8With = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true, nullDecodeAsEmpty ? Bool.true, emptyEncodeAsNull ? defaultEncodeAsNull } ->
     @Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull }
 
 EncodeAsNull : {
@@ -378,7 +378,7 @@ encodeRecord = \fields ->
 # Test encode for a record with two strings ignoring whitespace
 expect
     input = { fruitCount: 2, ownerName: "Farmer Joe" }
-    encoder = jsonWithOptions { fieldNameMapping: PascalCase }
+    encoder = utf8With { fieldNameMapping: PascalCase }
     actual = Encode.toBytes input encoder
     expected = Str.toUtf8 "{\"FruitCount\":2,\"OwnerName\":\"Farmer Joe\"}"
 
@@ -387,7 +387,7 @@ expect
 # Test encode of record with an array of strings and a boolean field
 expect
     input = { fruitFlavours: ["Apples", "Bananas", "Pears"], isFresh: Bool.true }
-    encoder = jsonWithOptions { fieldNameMapping: KebabCase }
+    encoder = utf8With { fieldNameMapping: KebabCase }
     actual = Encode.toBytes input encoder
     expected = Str.toUtf8 "{\"fruit-flavours\":[\"Apples\",\"Bananas\",\"Pears\"],\"is-fresh\":true}"
 
@@ -396,7 +396,7 @@ expect
 # Test encode of record with a string and number field
 expect
     input = { firstSegment: "ab", secondSegment: 10u8 }
-    encoder = jsonWithOptions { fieldNameMapping: SnakeCase }
+    encoder = utf8With { fieldNameMapping: SnakeCase }
     actual = Encode.toBytes input encoder
     expected = Str.toUtf8 "{\"first_segment\":\"ab\",\"second_segment\":10}"
 
@@ -405,7 +405,7 @@ expect
 # Test encode of record of a record
 expect
     input = { outer: { inner: "a" }, other: { one: "b", two: 10u8 } }
-    encoder = jsonWithOptions { fieldNameMapping: Custom toYellingCase }
+    encoder = utf8With { fieldNameMapping: Custom toYellingCase }
     actual = Encode.toBytes input encoder
     expected = Str.toUtf8 "{\"OTHER\":{\"ONE\":\"b\",\"TWO\":10},\"OUTER\":{\"INNER\":\"a\"}}"
 
@@ -482,7 +482,7 @@ encodeTag = \name, payload ->
 # Test encode of tag
 expect
     input = TheAnswer "is" 42
-    encoder = jsonWithOptions { fieldNameMapping: KebabCase }
+    encoder = utf8With { fieldNameMapping: KebabCase }
     actual = Encode.toBytes input encoder
     expected = Str.toUtf8 "{\"TheAnswer\":[\"is\",42]}"
 
@@ -1390,7 +1390,7 @@ expect
 expect
     input = Str.toUtf8 "[{\"field_name\":1}]"
 
-    decoder = jsonWithOptions { fieldNameMapping: SnakeCase }
+    decoder = utf8With { fieldNameMapping: SnakeCase }
 
     actual : DecodeResult (List { fieldName : U64 })
     actual = Decode.fromBytesPartial input decoder
@@ -1403,7 +1403,7 @@ expect
 expect
     input = Str.toUtf8 "[{\"extraField\":2,\"fieldName\":1}]"
 
-    decoder = jsonWithOptions { skipMissingProperties: Bool.false }
+    decoder = utf8With { skipMissingProperties: Bool.false }
 
     actual : DecodeResult (List { fieldName : U64 })
     actual = Decode.fromBytesPartial input decoder
@@ -1765,7 +1765,7 @@ ObjectState : [
 # Test decode of record with two strings ignoring whitespace
 expect
     input = Str.toUtf8 " {\n\"FruitCount\"\t:2\n, \"OwnerName\": \"Farmer Joe\" } "
-    decoder = jsonWithOptions { fieldNameMapping: PascalCase }
+    decoder = utf8With { fieldNameMapping: PascalCase }
     actual = Decode.fromBytesPartial input decoder
     expected = Ok { fruitCount: 2, ownerName: "Farmer Joe" }
 
@@ -1774,7 +1774,7 @@ expect
 # Test decode of record with an array of strings and a boolean field
 expect
     input = Str.toUtf8 "{\"fruit-flavours\": [\"Apples\",\"Bananas\",\"Pears\"], \"is-fresh\": true }"
-    decoder = jsonWithOptions { fieldNameMapping: KebabCase }
+    decoder = utf8With { fieldNameMapping: KebabCase }
     actual = Decode.fromBytesPartial input decoder
     expected = Ok { fruitFlavours: ["Apples", "Bananas", "Pears"], isFresh: Bool.true }
 
@@ -1783,7 +1783,7 @@ expect
 # Test decode of record with a string and number field
 expect
     input = Str.toUtf8 "{\"first_segment\":\"ab\",\"second_segment\":10}"
-    decoder = jsonWithOptions { fieldNameMapping: SnakeCase }
+    decoder = utf8With { fieldNameMapping: SnakeCase }
     actual = Decode.fromBytesPartial input decoder
     expected = Ok { firstSegment: "ab", secondSegment: 10u8 }
 
@@ -1792,7 +1792,7 @@ expect
 # Test decode of record of a record
 expect
     input = Str.toUtf8 "{\"OUTER\":{\"INNER\":\"a\"},\"OTHER\":{\"ONE\":\"b\",\"TWO\":10}}"
-    decoder = jsonWithOptions { fieldNameMapping: Custom fromYellingCase }
+    decoder = utf8With { fieldNameMapping: Custom fromYellingCase }
     actual = Decode.fromBytesPartial input decoder
     expected = Ok { outer: { inner: "a" }, other: { one: "b", two: 10u8 } }
 
@@ -1826,7 +1826,7 @@ complexExampleRecord = {
 # Test decode of Complex Example
 expect
     input = complexExampleJson
-    decoder = jsonWithOptions { fieldNameMapping: PascalCase }
+    decoder = utf8With { fieldNameMapping: PascalCase }
     actual = Decode.fromBytes input decoder
     expected = Ok complexExampleRecord
 
@@ -1835,7 +1835,7 @@ expect
 # Test encode of Complex Example
 expect
     input = complexExampleRecord
-    encoder = jsonWithOptions { fieldNameMapping: PascalCase }
+    encoder = utf8With { fieldNameMapping: PascalCase }
     actual = Encode.toBytes input encoder
     expected = complexExampleJson
 

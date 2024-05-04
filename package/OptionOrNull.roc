@@ -6,7 +6,7 @@
 ## eg: `core.jsonwithoptions { emptyencodeasnull: bool.false, nullasundefined: bool.false }`
 module [none, null, some, get, getResult, from]
 
-import Core
+import Json
 
 OptionOrNull val := [Some val, None, Null]
     implements [
@@ -68,7 +68,7 @@ expect
         """
         |> json
         |> Str.toUtf8
-        |> Decode.fromBytes (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { record: Bool.false }, nullDecodeAsEmpty: Bool.false })
+        |> Decode.fromBytes (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { record: Bool.false }, nullDecodeAsEmpty: Bool.false })
 
     expected = Ok ({ age: 1u8, name: null {}, lastName: none {} })
     expected == decoded
@@ -79,7 +79,7 @@ expect
         dat : OptionTest
         dat = { lastName: none {}, name: null {}, age: 1 }
         dat
-        |> Encode.toBytes (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { record: Bool.false } })
+        |> Encode.toBytes (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { record: Bool.false } })
         |> Str.fromUtf8
 
     expected =
@@ -89,4 +89,3 @@ expect
         |> json
         |> Ok
     expected == encoded
-
