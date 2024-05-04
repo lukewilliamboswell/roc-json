@@ -2,7 +2,7 @@
 ## If you need to distinguish between a missing field and a `null` field you should use `OptionOrNull`
 module [none, some, get, getResult, from, fromResult]
 
-import Core
+import Json
 
 Option val := [Some val, None]
     implements [
@@ -55,7 +55,7 @@ expect
         """
         |> json
         |> Str.toUtf8
-        |> Decode.fromBytes Core.json
+        |> Decode.fromBytes Json.utf8
 
     expected = Ok ({ name: "hi", lastName: none {}, age: some 1u8 })
     expected == decoded
@@ -68,7 +68,7 @@ expect
         """
         |> json
         |> Str.toUtf8
-        |> Decode.fromBytes Core.json
+        |> Decode.fromBytes Json.utf8
 
     expected = Ok ({ name: "hi", lastName: none {}, age: some 1u8 })
     expected == decoded
@@ -80,7 +80,7 @@ expect
 #         { name: "hi", lastName: none {}, age: some 1u8 }
 #     encoded =
 #         toEncode
-#         |> Encode.toBytes Core.json
+#         |> Encode.toBytes Json.utf8
 #         |> Str.fromUtf8
 
 #     expected =
@@ -97,7 +97,7 @@ expect
 #         { name: "hi", lastName: none {}, age: some 1u8 }
 #     encoded =
 #         toEncode
-#         |> Encode.toBytes (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { record: Bool.false } })
+#         |> Encode.toBytes (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { record: Bool.false } })
 #         |> Str.fromUtf8
 
 #     expected =
@@ -107,4 +107,3 @@ expect
 #         |> json
 #         |> Ok
 #     expected == encoded
-

@@ -1,6 +1,6 @@
 module []
 
-import Core
+import Json
 
 Option val := [None, Some val]
     implements [
@@ -26,7 +26,7 @@ expect
     encoded =
         dat : Option U8
         dat = @Option None
-        Encode.toBytes dat Core.json
+        Encode.toBytes dat Json.utf8
         |> Str.fromUtf8
 
     expected = Ok ""
@@ -36,7 +36,7 @@ expect
     encoded =
         dat : { maybe : Option U8, other : Str }
         dat = { maybe: none {}, other: "hi" }
-        Encode.toBytes dat (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { record: Bool.false } })
+        Encode.toBytes dat (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { record: Bool.false } })
         |> Str.fromUtf8
 
     expected = Ok
@@ -48,7 +48,7 @@ expect
 expect
     encoded =
         { maybe: some 10 }
-        |> Encode.toBytes Core.json
+        |> Encode.toBytes Json.utf8
         |> Str.fromUtf8
 
     expected = Ok
@@ -60,7 +60,7 @@ expect
 expect
     encoded =
         dat = [some 1, none {}, some 2, some 3]
-        Encode.toBytes dat Core.json
+        Encode.toBytes dat Json.utf8
         |> Str.fromUtf8
 
     expected = Ok "[1,2,3]"
@@ -71,7 +71,7 @@ expect
     encoded =
         dat : { maybe : Option U8, other : Str }
         dat = { maybe: none {}, other: "hi" }
-        Encode.toBytes dat Core.json
+        Encode.toBytes dat Json.utf8
         |> Str.fromUtf8
 
     expected = Ok
@@ -84,7 +84,7 @@ expect
     encoded =
         dat : (U8, Option U8, Option Str, Str)
         dat = (10, none {}, some "opt", "hi")
-        Encode.toBytes dat Core.json
+        Encode.toBytes dat Json.utf8
         |> Str.fromUtf8
 
     expected = Ok
@@ -96,7 +96,7 @@ expect
 expect
     encoded =
         dat = [some 1, none {}, some 2, some 3]
-        Encode.toBytes dat (Core.jsonWithOptions { emptyEncodeAsNull: Core.encodeAsNullOption { list: Bool.true } })
+        Encode.toBytes dat (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { list: Bool.true } })
         |> Str.fromUtf8
 
     expected = Ok "[1,null,2,3]"
@@ -119,7 +119,7 @@ expect
         {"y":1}
         """
         |> Str.toUtf8
-        |> Decode.fromBytes Core.json
+        |> Decode.fromBytes Json.utf8
 
     expected = Ok ({ y: 1u8, maybe: none {} })
     isGood =
@@ -138,7 +138,7 @@ expect
         {"maybe":1}
         """
         |> Str.toUtf8
-        |> Decode.fromBytes Core.json
+        |> Decode.fromBytes Json.utf8
 
     expected = Ok ({ maybe: some 1u8 })
     expected == decoded
@@ -147,7 +147,7 @@ expect
     decoded =
         "[1,2,3]"
         |> Str.toUtf8
-        |> Decode.fromBytes Core.json
+        |> Decode.fromBytes Json.utf8
 
     expected = Ok [some 1, some 2, some 3]
     expected == decoded
@@ -158,7 +158,7 @@ expect
     decoded =
         "[1,null,2]"
         |> Str.toUtf8
-        |> Decode.fromBytes Core.json
+        |> Decode.fromBytes Json.utf8
     expected = Ok (some 1, none {}, some 2)
     expected == decoded
 
@@ -170,7 +170,7 @@ expect
         {"y":1,"maybe":null}
         """
         |> Str.toUtf8
-        |> Decode.fromBytes Core.json
+        |> Decode.fromBytes Json.utf8
 
     expected = Ok ({ y: 1u8, maybe: none {} })
     isGood =

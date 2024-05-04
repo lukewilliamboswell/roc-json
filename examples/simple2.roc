@@ -5,11 +5,11 @@ app [main] {
 
 import cli.Stdout
 import cli.Task
-import json.Core
+import json.Json
 import "data.json" as requestBody : List U8
 
 main =
-    decoder = Core.jsonWithOptions {}
+    decoder = Json.utf8With {}
 
     decoded : Decode.DecodeResult (List DataRequest)
     decoded = Decode.fromBytesPartial requestBody decoder
