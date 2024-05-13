@@ -4,7 +4,7 @@
 ##
 ## Ensure you set `nullAsUndefined` and `emptyEncodeAsNull` to false in your jsonOptions
 ## eg: `core.jsonwithoptions { emptyencodeasnull: bool.false, nullasundefined: bool.false }`
-module [none, null, some, get, getResult, from]
+module [OptionOrNull, none, null, some, get, getResult, from]
 
 import Json
 
