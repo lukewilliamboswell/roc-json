@@ -1,6 +1,6 @@
 ## Represents either a value, or nothing
 ## If you need to distinguish between a missing field and a `null` field you should use `OptionOrNull`
-module [none, some, get, getResult, from, fromResult]
+module [Option, none, some, get, getResult, from, fromResult]
 
 import Json
 
