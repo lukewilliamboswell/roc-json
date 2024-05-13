@@ -21,12 +21,12 @@
 ## result : Result Language _
 ## result =
 ##     jsonStr
-##     |> Decode.fromBytes Json.json # returns `Ok {name : "Röc Lang"}`
+##     |> Decode.fromBytes Json.utf8 # returns `Ok {name : "Röc Lang"}`
 ##
 ## name =
 ##     decodedValue <- Result.map result
 ##
-##     Encode.toBytes decodedValue.name Json.json
+##     Encode.toBytes decodedValue.name Json.utf8
 ##
 ## expect name == Ok (Str.toUtf8 "\"Röc Lang\"")
 ## ```
