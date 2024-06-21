@@ -8,7 +8,7 @@ import cli.Task
 import json.Json
 import json.OptionOrNull exposing [OptionOrNull]
 
-Object : { firstName: Str, lastName: OptionOrNull Str }
+Object : { firstName : Str, lastName : OptionOrNull Str }
 
 main =
     noneObj : Object
@@ -33,5 +33,4 @@ main =
     # someJson == {"firstName":"Luke","lastName":"Boswell"}
     someJson = Encode.toBytes someObj Json.utf8
     Stdout.line (someJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
-    
-    
+
