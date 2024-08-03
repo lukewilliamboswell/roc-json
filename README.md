@@ -21,10 +21,9 @@ Alternatively, generate docs locally using `roc docs package/main.roc` and then 
 You can use the release URL package in your Roc app. In your `app.roc` file you can import the json package like so.
 
 ```roc
-app "example"
-    packages {
-        cli: "https://github.com/roc-lang/basic-cli/releases/download/[REPLACE WITH RELEASE URL].tar.br",
-        json: "https://github.com/lukewilliamboswell/roc-json/releases/download/[REPLACE WITH RELEASE URL].tar.br",
-    }
-    ...
+app [example] {
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/[REPLACE WITH RELEASE URL].tar.br",
+    json: "https://github.com/lukewilliamboswell/roc-json/releases/download/[REPLACE WITH RELEASE URL].tar.br",
+}
+...
 ```
