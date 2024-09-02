@@ -24,9 +24,9 @@
 ##     |> Decode.fromBytes Json.utf8 # returns `Ok {name : "Röc Lang"}`
 ##
 ## name =
-##     decodedValue <- Result.map result
+##     decodedValue = result?
 ##
-##     Encode.toBytes decodedValue.name Json.utf8
+##     Ok (Encode.toBytes decodedValue.name Json.utf8)
 ##
 ## expect name == Ok (Str.toUtf8 "\"Röc Lang\"")
 ## ```
@@ -720,36 +720,35 @@ expect
 decodeTuple = \initialState, stepElem, finalizer -> Decode.custom \initialBytes, jsonFmt ->
         # NB: the stepper function must be passed explicitly until #2894 is resolved.
         decodeElems = \stepper, state, index, bytes ->
-            { val: newState, rest: beforeCommaOrBreak } <- tryDecode
-                    (
-                        when stepper state index is
-                            TooLong ->
-                                { rest: beforeCommaOrBreak } <- bytes |> anything |> tryDecode
-                                { result: Ok state, rest: beforeCommaOrBreak }
+            decodeAttempt =
+                when stepper state index is
+                    TooLong ->
+                        bytes
+                        |> anything
+                        |> tryDecode \{ rest: beforeCommaOrBreak } ->
+                            { result: Ok state, rest: beforeCommaOrBreak }
 
-                            Next decoder ->
-                                decodePotentialNull (eatWhitespace bytes) decoder jsonFmt
+                    Next decoder ->
+                        decodePotentialNull (eatWhitespace bytes) decoder jsonFmt
 
-                    )
+            tryDecode decodeAttempt \{ val: newState, rest: beforeCommaOrBreak } ->
+                { result: commaResult, rest: nextBytes } = comma beforeCommaOrBreak
 
-            { result: commaResult, rest: nextBytes } = comma beforeCommaOrBreak
+                when commaResult is
+                    Ok {} -> decodeElems stepElem newState (index + 1) nextBytes
+                    Err _ -> { result: Ok newState, rest: nextBytes }
 
-            when commaResult is
-                Ok {} -> decodeElems stepElem newState (index + 1) nextBytes
-                Err _ -> { result: Ok newState, rest: nextBytes }
-
-        { rest: afterBracketBytes } <- initialBytes |> openBracket |> tryDecode
-
-        { val: endStateResult, rest: beforeClosingBracketBytes } <- decodeElems stepElem initialState 0 (eatWhitespace afterBracketBytes) |> tryDecode
-
-        { rest: afterTupleBytes } <-
-            (eatWhitespace beforeClosingBracketBytes)
-            |> closingBracket
-            |> tryDecode
-
-        when finalizer endStateResult is
-            Ok val -> { result: Ok val, rest: afterTupleBytes }
-            Err e -> { result: Err e, rest: afterTupleBytes }
+        initialBytes
+        |> openBracket
+        |> tryDecode \{ rest: afterBracketBytes } ->
+            decodeElems stepElem initialState 0 (eatWhitespace afterBracketBytes)
+            |> tryDecode \{ val: endStateResult, rest: beforeClosingBracketBytes } ->
+                (eatWhitespace beforeClosingBracketBytes)
+                |> closingBracket
+                |> tryDecode \{ rest: afterTupleBytes } ->
+                    when finalizer endStateResult is
+                        Ok val -> { result: Ok val, rest: afterTupleBytes }
+                        Err e -> { result: Err e, rest: afterTupleBytes }
 
 # Test decode of tuple
 expect
@@ -1511,55 +1510,53 @@ decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Jso
                     { result: Err TooShort, rest: bytes }
 
                 Ok objectName ->
+                    decodeAttempt =
+                        fieldName =
+                            fromObjectNameUsingMap objectName fieldNameMapping
+
+                        # Retrieve value decoder for the current field
+                        when (stepField recordState fieldName, skipMissingProperties) is
+                            (Skip, shouldSkip) if shouldSkip == Bool.true ->
+                                # Count the bytes until the field value
+                                countBytesBeforeNextField =
+                                    when List.walkUntil valueBytes (FieldValue 0) skipFieldHelp is
+                                        FieldValueEnd n -> n
+                                        _ -> 0
+
+                                dropedValueBytes = List.dropFirst valueBytes countBytesBeforeNextField
+
+                                { result: Ok recordState, rest: dropedValueBytes }
+
+                            (Skip, _) ->
+                                { result: Ok recordState, rest: valueBytes }
+
+                            (Keep valueDecoder, _) ->
+                                # Decode the value using the decoder from the recordState
+                                decodePotentialNull valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
+
                     # Decode the json value
-                    { val: updatedRecord, rest: bytesAfterValue } <-
-                        (
-                            fieldName =
-                                fromObjectNameUsingMap objectName fieldNameMapping
+                    tryDecode decodeAttempt \{ val: updatedRecord, rest: bytesAfterValue } ->
+                        # Check if another field or '}' for end of object
+                        when List.walkUntil bytesAfterValue (AfterObjectValue 0) objectHelp is
+                            ObjectFieldNameStart n ->
+                                rest = List.dropFirst bytesAfterValue n
 
-                            # Retrieve value decoder for the current field
-                            when (stepField recordState fieldName, skipMissingProperties) is
-                                (Skip, shouldSkip) if shouldSkip == Bool.true ->
-                                    # Count the bytes until the field value
-                                    countBytesBeforeNextField =
-                                        when List.walkUntil valueBytes (FieldValue 0) skipFieldHelp is
-                                            FieldValueEnd n -> n
-                                            _ -> 0
+                                # Decode the next field and value
+                                decodeFields updatedRecord rest
 
-                                    dropedValueBytes = List.dropFirst valueBytes countBytesBeforeNextField
+                            AfterClosingBrace n ->
+                                rest = List.dropFirst bytesAfterValue n
 
-                                    { result: Ok recordState, rest: dropedValueBytes }
+                                # Build final record from decoded fields and values
+                                when finalizer updatedRecord utf8 is
+                                    ## This step is where i can implement my special decoding of options
+                                    Ok val -> { result: Ok val, rest }
+                                    Err e ->
+                                        { result: Err e, rest }
 
-                                (Skip, _) ->
-                                    { result: Ok recordState, rest: valueBytes }
-
-                                (Keep valueDecoder, _) ->
-                                    # Decode the value using the decoder from the recordState
-                                    decodePotentialNull valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
-                        )
-                        |> tryDecode
-
-                    # Check if another field or '}' for end of object
-                    when List.walkUntil bytesAfterValue (AfterObjectValue 0) objectHelp is
-                        ObjectFieldNameStart n ->
-                            rest = List.dropFirst bytesAfterValue n
-
-                            # Decode the next field and value
-                            decodeFields updatedRecord rest
-
-                        AfterClosingBrace n ->
-                            rest = List.dropFirst bytesAfterValue n
-
-                            # Build final record from decoded fields and values
-                            when finalizer updatedRecord utf8 is
-                                ## This step is where i can implement my special decoding of options
-                                Ok val -> { result: Ok val, rest }
-                                Err e ->
-                                    { result: Err e, rest }
-
-                        _ ->
-                            # Invalid object
-                            { result: Err TooShort, rest: bytesAfterValue }
+                            _ ->
+                                # Invalid object
+                                { result: Err TooShort, rest: bytesAfterValue }
 
         countBytesBeforeFirstField =
             when List.walkUntil bytes (BeforeOpeningBrace 0) objectHelp is
