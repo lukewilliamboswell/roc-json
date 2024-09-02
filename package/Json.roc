@@ -1142,10 +1142,83 @@ hexToUtf8 = \a, b, c, d ->
     k = jsonHexToDecimal c
     l = jsonHexToDecimal d
 
-    if i == 0 && j == 0 then
-        [decimalHexToByte k l]
+    cp = (16 * 16 * 16 * Num.toU32 i) + (16 * 16 * Num.toU32 j) + (16 * Num.toU32 k) + Num.toU32 l
+    codepointToUtf8 cp
+
+# Copied from https://github.com/roc-lang/unicode/blob/e1162d49e3a2c57ed711ecdee7dc8537a19479d8/
+# from package/CodePoint.roc and modified
+codepointToUtf8 : U32 -> List U8
+codepointToUtf8 = \u32 ->
+    if u32 < 0x80 then
+        [Num.toU8 u32]
+    else if u32 < 0x800 then
+        byte1 =
+            u32
+            |> Num.shiftRightBy 6
+            |> Num.bitwiseOr 0b11000000
+            |> Num.toU8
+
+        byte2 =
+            u32
+            |> Num.bitwiseAnd 0b111111
+            |> Num.bitwiseOr 0b10000000
+            |> Num.toU8
+
+        [byte1, byte2]
+    else if u32 < 0x10000 then
+        byte1 =
+            u32
+            |> Num.shiftRightBy 12
+            |> Num.bitwiseOr 0b11100000
+            |> Num.toU8
+
+        byte2 =
+            u32
+            |> Num.shiftRightBy 6
+            |> Num.bitwiseAnd 0b111111
+            |> Num.bitwiseOr 0b10000000
+            |> Num.toU8
+
+        byte3 =
+            u32
+            |> Num.bitwiseAnd 0b111111
+            |> Num.bitwiseOr 0b10000000
+            |> Num.toU8
+
+        [byte1, byte2, byte3]
+    else if u32 < 0x110000 then
+        ## This was an invalid Unicode scalar value, even though it had the Roc type Scalar.
+        ## This should never happen!
+        # expect u32 < 0x110000
+        crash "Impossible"
     else
-        [decimalHexToByte i j, decimalHexToByte k l]
+        byte1 =
+            u32
+            |> Num.shiftRightBy 18
+            |> Num.bitwiseOr 0b11110000
+            |> Num.toU8
+
+        byte2 =
+            u32
+            |> Num.shiftRightBy 12
+            |> Num.bitwiseAnd 0b111111
+            |> Num.bitwiseOr 0b10000000
+            |> Num.toU8
+
+        byte3 =
+            u32
+            |> Num.shiftRightBy 6
+            |> Num.bitwiseAnd 0b111111
+            |> Num.bitwiseOr 0b10000000
+            |> Num.toU8
+
+        byte4 =
+            u32
+            |> Num.bitwiseAnd 0b111111
+            |> Num.bitwiseOr 0b10000000
+            |> Num.toU8
+
+        [byte1, byte2, byte3, byte4]
 
 # Test for \u0074 == U+74 == 't' in Basic Multilingual Plane
 expect
@@ -1162,10 +1235,10 @@ expect
 # Test for \u2c64 == U+2C64 == 'Ɽ' in Latin Extended-C
 expect
     actual = hexToUtf8 '2' 'C' '6' '4'
-    expected = [44, 100]
+    expected = [0xE2, 0xB1, 0xA4]
     actual == expected
 
-unicodeReplacement = hexToUtf8 'f' 'f' 'd' 'd'
+unicodeReplacement = [0xEF, 0xBF, 0xBD]
 
 replaceEscapedChars : { inBytes : List U8, outBytes : List U8 } -> { inBytes : List U8, outBytes : List U8 }
 replaceEscapedChars = \{ inBytes, outBytes } ->
