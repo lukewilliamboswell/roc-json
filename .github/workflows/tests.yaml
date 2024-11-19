@@ -10,12 +10,18 @@ concurrency:
 jobs:
 
   test-examples:
-    runs-on: [ubuntu-20.04]
+    runs-on: [ubuntu-22.04]
     steps:
       - uses: actions/checkout@v3
 
       # get roc cli 
-      - name: get latest roc nightly
+      - id: try_fetching_testing_release
+        continue-on-error: true
+        run: |
+          curl -fOL https://github.com/roc-lang/roc/releases/download/nightly/roc_nightly-linux_x86_64-TESTING.tar.gz
+
+      - name: There are no TESTING releases, checking regular releases instead
+        if: steps.try_fetching_testing_release.outcome == 'failure'
         run: |
           curl -fOL https://github.com/roc-lang/roc/releases/download/nightly/roc_nightly-linux_x86_64-latest.tar.gz
 

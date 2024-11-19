@@ -241,7 +241,7 @@ encodeStrBytes = \str ->
 
         FoundEscape ->
             { before: bytesBeforeEscape, others: bytesWithEscapes } =
-                List.split bytes firstPassState.bytePos
+                List.splitAt bytes firstPassState.bytePos
 
             # Reserve List with 120% capacity for escaped bytes to reduce
             # allocations, include starting quote, and bytes up to first escape
@@ -772,7 +772,7 @@ parseExactChar = \bytes, char ->
             if
                 c == char
             then
-                { result: Ok {}, rest: (List.split bytes 1).others }
+                { result: Ok {}, rest: (List.splitAt bytes 1).others }
             else
                 { result: Err TooShort, rest: bytes }
 
@@ -1967,7 +1967,7 @@ toCamelCase = \str ->
 
 snakeToCamel : Str -> Str
 snakeToCamel = \str ->
-    segments = Str.split str "_"
+    segments = Str.splitOn str "_"
     when segments is
         [first, .. as rest] ->
             rest
@@ -1993,7 +1993,7 @@ expect pascalToCamel "PascalCaseString" == "pascalCaseString"
 
 kebabToCamel : Str -> Str
 kebabToCamel = \str ->
-    segments = Str.split str "-"
+    segments = Str.splitOn str "-"
     when segments is
         [first, .. as rest] ->
             rest
