@@ -5,23 +5,23 @@ app [main] {
 
 import cli.Stdout
 import json.Json
-import "data.json" as requestBody : List U8
+import "data.json" as request_body : List U8
 
 main =
-    decoder = Json.utf8With {}
+    decoder = Json.utf8_with({})
 
     decoded : Decode.DecodeResult (List DataRequest)
-    decoded = Decode.fromBytesPartial requestBody decoder
+    decoded = Decode.from_bytes_partial(request_body, decoder)
 
     when decoded.result is
-        Ok list ->
-            Stdout.line! "Successfully decoded list"
+        Ok(list) ->
+            Stdout.line!("Successfully decoded list")
 
-            when List.get list 0 is
-                Ok rec -> Stdout.line! "Name of first person is: $(rec.lastname)"
-                Err _ -> Stdout.line! "Error occurred in List.get"
+            when List.get(list, 0) is
+                Ok(rec) -> Stdout.line!("Name of first person is: $(rec.lastname)")
+                Err(_) -> Stdout.line!("Error occurred in List.get")
 
-        Err TooShort -> Stdout.line! "A TooShort error occurred"
+        Err(TooShort) -> Stdout.line!("A TooShort error occurred")
 
 DataRequest : {
     id : I64,

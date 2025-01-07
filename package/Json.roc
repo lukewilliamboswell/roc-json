@@ -16,92 +16,92 @@
 ##     name : Str,
 ## }
 ##
-## jsonStr = Str.toUtf8 "{\"name\":\"Röc Lang\"}"
+## json_str = Str.to_utf8("{\"name\":\"Röc Lang\"}")
 ##
 ## result : Result Language _
 ## result =
-##     jsonStr
-##     |> Decode.fromBytes Json.utf8 # returns `Ok {name : "Röc Lang"}`
+##     json_str
+##     |> Decode.from_bytes(Json.utf8) # returns `Ok({name : "Röc Lang"})`
 ##
 ## name =
-##     decodedValue = result?
+##     decoded_value = result?
 ##
-##     Ok (Encode.toBytes decodedValue.name Json.utf8)
+##     Ok (Encode.to_bytes decoded_value.name Json.utf8)
 ##
-## expect name == Ok (Str.toUtf8 "\"Röc Lang\"")
+## expect name == Ok(Str.to_utf8("\"Röc Lang\""))
 ## ```
 module [
     Json,
     utf8,
-    utf8With,
-    encodeAsNullOption,
+    utf8_with,
+    encode_as_null_option,
 ]
 
 ## An opaque type with the `Encode.EncoderFormatting` and
 ## `DecoderFormatting` abilities.
-Json := { fieldNameMapping : FieldNameMapping, skipMissingProperties : Bool, nullDecodeAsEmpty : Bool, emptyEncodeAsNull : EncodeAsNull }
+Json := { field_name_mapping : FieldNameMapping, skip_missing_properties : Bool, null_decode_as_empty : Bool, empty_encode_as_null : EncodeAsNull }
     implements [
         Encode.EncoderFormatting {
-            u8: encodeU8,
-            u16: encodeU16,
-            u32: encodeU32,
-            u64: encodeU64,
-            u128: encodeU128,
-            i8: encodeI8,
-            i16: encodeI16,
-            i32: encodeI32,
-            i64: encodeI64,
-            i128: encodeI128,
-            f32: encodeF32,
-            f64: encodeF64,
-            dec: encodeDec,
-            bool: encodeBool,
-            string: encodeString,
-            list: encodeList,
-            record: encodeRecord,
-            tuple: encodeTuple,
-            tag: encodeTag,
+            u8: encode_u8,
+            u16: encode_u16,
+            u32: encode_u32,
+            u64: encode_u64,
+            u128: encode_u128,
+            i8: encode_i8,
+            i16: encode_i16,
+            i32: encode_i32,
+            i64: encode_i64,
+            i128: encode_i128,
+            f32: encode_f32,
+            f64: encode_f64,
+            dec: encode_dec,
+            bool: encode_bool,
+            string: encode_string,
+            list: encode_list,
+            record: encode_record,
+            tuple: encode_tuple,
+            tag: encode_tag,
         },
         DecoderFormatting {
-            u8: decodeU8,
-            u16: decodeU16,
-            u32: decodeU32,
-            u64: decodeU64,
-            u128: decodeU128,
-            i8: decodeI8,
-            i16: decodeI16,
-            i32: decodeI32,
-            i64: decodeI64,
-            i128: decodeI128,
-            f32: decodeF32,
-            f64: decodeF64,
-            dec: decodeDec,
-            bool: decodeBool,
-            string: decodeString,
-            list: decodeList,
-            record: decodeRecord,
-            tuple: decodeTuple,
+            u8: decode_u8,
+            u16: decode_u16,
+            u32: decode_u32,
+            u64: decode_u64,
+            u128: decode_u128,
+            i8: decode_i8,
+            i16: decode_i16,
+            i32: decode_i32,
+            i64: decode_i64,
+            i128: decode_i128,
+            f32: decode_f32,
+            f64: decode_f64,
+            dec: decode_dec,
+            bool: decode_bool,
+            string: decode_string,
+            list: decode_list,
+            record: decode_record,
+            tuple: decode_tuple,
         },
     ]
 
 ## Returns a JSON `Encode.Encoder` and `Decoder`
-utf8 = @Json { fieldNameMapping: Default, skipMissingProperties: Bool.true, nullDecodeAsEmpty: Bool.true, emptyEncodeAsNull: defaultEncodeAsNull }
+utf8 = @Json({ field_name_mapping: Default, skip_missing_properties: Bool.true, null_decode_as_empty: Bool.true, empty_encode_as_null: default_encode_as_null })
 
 ## Returns a JSON `Encode.Encoder` and `Decoder` with configuration options
 ##
-## **skipMissingProperties** - if `True` the decoder will skip additional properties
+## **skip_missing_properties** - if `True` the decoder will skip additional properties
 ## in the json that are not present in the model. (Default: `True`)
 ##
-## **nullDecodeAsEmpty** - if `True` the decoder will convert `null` to an empty byte array.
+## **null_decode_as_empty** - if `True` the decoder will convert `null` to an empty byte array.
 ## This makes `{"email":null,"name":"bob"}` decode the same as `{"name":"bob"}`. (Default: `True`)
 ##
-## **emptyEncodeAsNull** - if `True` encoders that return `[]` will result in a `null` in the
+## **empty__encode_as_null** - if `True` encoders that return `[]` will result in a `null` in the
 ## json. If `False` when an encoder returns `[]` the record field, or list/tuple element, will be ommitted.
 ## eg: `{email:@Option None, name:"bob"}` encodes to `{"email":null, "name":"bob"}` instead of `{"name":"bob"}` (Default: `True`)
 
-utf8With : { fieldNameMapping ? FieldNameMapping, skipMissingProperties ? Bool, nullDecodeAsEmpty ? Bool, emptyEncodeAsNull ? EncodeAsNull } -> Json
-utf8With = \{ fieldNameMapping ? Default, skipMissingProperties ? Bool.true, nullDecodeAsEmpty ? Bool.true, emptyEncodeAsNull ? defaultEncodeAsNull } ->
-    @Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull }
+utf8_with : { field_name_mapping ?? FieldNameMapping, skip_missing_properties ?? Bool, null_decode_as_empty ?? Bool, empty_encode_as_null ?? EncodeAsNull } -> Json
+utf8_with = \{ field_name_mapping ?? Default, skip_missing_properties ?? Bool.true, null_decode_as_empty ?? Bool.true, empty_encode_as_null ?? default_encode_as_null } ->
+    @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null })
 
 EncodeAsNull : {
     list : Bool,
@@ -109,13 +109,13 @@ EncodeAsNull : {
     record : Bool,
 }
 
-encodeAsNullOption : { list ? Bool, tuple ? Bool, record ? Bool } -> EncodeAsNull
-encodeAsNullOption = \{ list ? Bool.false, tuple ? Bool.true, record ? Bool.true } -> {
+encode_as_null_option : { list ?? Bool, tuple ?? Bool, record ?? Bool } -> EncodeAsNull
+encode_as_null_option = \{ list ?? Bool.false, tuple ?? Bool.true, record ?? Bool.true } -> {
     list,
     tuple,
     record,
 }
-defaultEncodeAsNull = {
+default_encode_as_null = {
     list: Bool.false,
     tuple: Bool.true,
     record: Bool.true,
@@ -131,137 +131,137 @@ FieldNameMapping : [
 ]
 
 # TODO encode as JSON numbers as base 10 decimal digits
-# e.g. the REPL `Num.toStr 12e42f64` gives
+# e.g. the REPL `Num.to_str(12e42f64)` gives
 # "12000000000000000000000000000000000000000000" : Str
 # which should be encoded as "12e42" : Str
-numToBytes = \n ->
-    n |> Num.toStr |> Str.toUtf8
+num_to_bytes = \n ->
+    n |> Num.to_str |> Str.to_utf8
 
-encodeU8 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_u8 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeU16 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_u16 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeU32 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_u32 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeU64 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_u64 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeU128 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_u128 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeI8 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_i8 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeI16 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_i16 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeI32 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_i32 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeI64 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_i64 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeI128 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_i128 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeF32 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_f32 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeF64 = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_f64 = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeDec = \n ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (numToBytes n)
+encode_dec = \n ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, num_to_bytes(n)))
 
-encodeBool = \b ->
-    Encode.custom \bytes, @Json {} ->
+encode_bool = \b ->
+    Encode.custom(\bytes, @Json({}) ->
         if b then
-            List.concat bytes (Str.toUtf8 "true")
+            List.concat(bytes, Str.to_utf8("true"))
         else
-            List.concat bytes (Str.toUtf8 "false")
+            List.concat(bytes, Str.to_utf8("false")))
 
 # Test encode boolean
 expect
     input = [Bool.true, Bool.false]
-    actual = Encode.toBytes input utf8
-    expected = Str.toUtf8 "[true,false]"
+    actual = Encode.to_bytes(input, utf8)
+    expected = Str.to_utf8("[true,false]")
 
     actual == expected
 
-encodeString = \str ->
-    Encode.custom \bytes, @Json {} ->
-        List.concat bytes (encodeStrBytes str)
+encode_string = \str ->
+    Encode.custom(\bytes, @Json({}) ->
+        List.concat(bytes, encode_str_bytes(str)))
 
 # TODO add support for unicode escapes (including 2,3,4 byte code points)
 # these should be encoded using a 12-byte sequence encoding the UTF-16 surrogate
 # pair. For example a string containing only G clef character U+1D11E is
 # represented as "\\uD834\\uDD1E" (note "\\" here is a single reverse solidus)
-encodeStrBytes = \str ->
-    bytes = Str.toUtf8 str
+encode_str_bytes = \str ->
+    bytes = Str.to_utf8(str)
 
-    initialState = { bytePos: 0, status: NoEscapesFound }
+    initial_state = { byte_pos: 0, status: NoEscapesFound }
 
-    firstPassState =
-        List.walkUntil bytes initialState \{ bytePos, status }, b ->
+    first_pass_state =
+        List.walk_until(bytes, initial_state, \{ byte_pos, status }, b ->
             when b is
-                0x22 -> Break { bytePos, status: FoundEscape } # U+0022 Quotation mark
-                0x5c -> Break { bytePos, status: FoundEscape } # U+005c Reverse solidus
-                0x2f -> Break { bytePos, status: FoundEscape } # U+002f Solidus
-                0x08 -> Break { bytePos, status: FoundEscape } # U+0008 Backspace
-                0x0c -> Break { bytePos, status: FoundEscape } # U+000c Form feed
-                0x0a -> Break { bytePos, status: FoundEscape } # U+000a Line feed
-                0x0d -> Break { bytePos, status: FoundEscape } # U+000d Carriage return
-                0x09 -> Break { bytePos, status: FoundEscape } # U+0009 Tab
-                _ -> Continue { bytePos: bytePos + 1, status }
+                0x22 -> Break({ byte_pos, status: FoundEscape }) # U+0022 Quotation mark
+                0x5c -> Break({ byte_pos, status: FoundEscape }) # U+005c Reverse solidus
+                0x2f -> Break({ byte_pos, status: FoundEscape }) # U+002f Solidus
+                0x08 -> Break({ byte_pos, status: FoundEscape }) # U+0008 Backspace
+                0x0c -> Break({ byte_pos, status: FoundEscape }) # U+000c Form feed
+                0x0a -> Break({ byte_pos, status: FoundEscape }) # U+000a Line feed
+                0x0d -> Break({ byte_pos, status: FoundEscape }) # U+000d Carriage return
+                0x09 -> Break({ byte_pos, status: FoundEscape }) # U+0009 Tab
+                _ -> Continue({ byte_pos: byte_pos + 1, status }))
 
-    when firstPassState.status is
+    when first_pass_state.status is
         NoEscapesFound ->
-            (List.len bytes)
+            (List.len(bytes))
             + 2
-            |> List.withCapacity
-            |> List.concat ['"']
-            |> List.concat bytes
-            |> List.concat ['"']
+            |> List.with_capacity
+            |> List.concat(['"'])
+            |> List.concat(bytes)
+            |> List.concat(['"'])
 
         FoundEscape ->
-            { before: bytesBeforeEscape, others: bytesWithEscapes } =
-                List.splitAt bytes firstPassState.bytePos
+            { before: bytes_before_escape, others: bytes_with_escapes } =
+                List.split_at(bytes, first_pass_state.byte_pos)
 
             # Reserve List with 120% capacity for escaped bytes to reduce
             # allocations, include starting quote, and bytes up to first escape
             initial =
-                List.len bytes
-                |> Num.mul 120
-                |> Num.divCeil 100
-                |> List.withCapacity
-                |> List.concat ['"']
-                |> List.concat bytesBeforeEscape
+                List.len(bytes)
+                |> Num.mul(120)
+                |> Num.div_ceil(100)
+                |> List.with_capacity
+                |> List.concat(['"'])
+                |> List.concat(bytes_before_escape)
 
             # Walk the remaining bytes and include escape '\' as required
             # add closing quote
-            List.walk bytesWithEscapes initial \encodedBytes, byte ->
-                List.concat encodedBytes (escapedByteToJson byte)
-            |> List.concat ['"']
+            List.walk(bytes_with_escapes, initial, \encoded_bytes, byte ->
+                List.concat(encoded_bytes, escaped_byte_to_json(byte)))
+            |> List.concat(['"'])
 
 # Prepend an "\" escape byte
-escapedByteToJson : U8 -> List U8
-escapedByteToJson = \b ->
+escaped_byte_to_json : U8 -> List U8
+escaped_byte_to_json = \b ->
     when b is
         0x22 -> [0x5c, 0x22] # U+0022 Quotation mark
         0x5c -> [0x5c, 0x5c] # U+005c Reverse solidus
@@ -273,528 +273,529 @@ escapedByteToJson = \b ->
         0x09 -> [0x5c, 'r'] # U+0009 Tab
         _ -> [b]
 
-expect escapedByteToJson '\n' == ['\\', 'n']
-expect escapedByteToJson '\\' == ['\\', '\\']
-expect escapedByteToJson '"' == ['\\', '"']
+expect escaped_byte_to_json('\n') == ['\\', 'n']
+expect escaped_byte_to_json('\\') == ['\\', '\\']
+expect escaped_byte_to_json('"') == ['\\', '"']
 
 # Test encode small string
 expect
     input = "G'day"
-    actual = Encode.toBytes input utf8
-    expected = Str.toUtf8 "\"G'day\""
+    actual = Encode.to_bytes(input, utf8)
+    expected = Str.to_utf8("\"G'day\"")
 
     actual == expected
 
 # Test encode large string
 expect
     input = "the quick brown fox jumps over the lazy dog"
-    actual = Encode.toBytes input utf8
-    expected = Str.toUtf8 "\"the quick brown fox jumps over the lazy dog\""
+    actual = Encode.to_bytes(input, utf8)
+    expected = Str.to_utf8("\"the quick brown fox jumps over the lazy dog\"")
 
     actual == expected
 
 # Test encode with escapes e.g. "\r" encodes to "\\r"
 expect
     input = "the quick brown fox jumps over the lazy doga\r\nbc\\\"xz"
-    actual = Encode.toBytes input utf8
-    expected = Str.toUtf8 "\"the quick brown fox jumps over the lazy doga\\r\\nbc\\\\\\\"xz\""
+    actual = Encode.to_bytes(input, utf8)
+    expected = Str.to_utf8("\"the quick brown fox jumps over the lazy doga\\r\\nbc\\\\\\\"xz\"")
 
     actual == expected
 
-encodeList = \lst, encodeElem ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull } ->
-        writeList = \{ buffer, elemsLeft }, elem ->
-            beforeBufferLen = buffer |> List.len
+encode_list = \lst, encode_elem ->
+    Encode.custom(\bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
+        write_list = \{ buffer, elems_left }, elem ->
+            before_buffer_len = buffer |> List.len
 
-            bufferWithElem =
-                elemBytes =
-                    Encode.appendWith [] (encodeElem elem) (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
-                    |> emptyToNull emptyEncodeAsNull.list
-                buffer |> List.concat elemBytes
+            buffer_with_elem =
+                elem_bytes =
+                    Encode.append_with([], encode_elem(elem), @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }))
+                    |> empty_to_null(empty_encode_as_null.list)
+                buffer |> List.concat(elem_bytes)
 
             # If our encoder returned [] we just skip the elem
-            emptyEncode = bufferWithElem |> List.len == beforeBufferLen
-            if emptyEncode then
-                { buffer: bufferWithElem, elemsLeft: elemsLeft - 1 }
+            empty_encode = buffer_with_elem |> List.len == before_buffer_len
+            if empty_encode then
+                { buffer: buffer_with_elem, elems_left: elems_left - 1 }
             else
-                bufferWithSuffix =
-                    if elemsLeft > 1 then
-                        List.append bufferWithElem (Num.toU8 ',')
+                buffer_with_suffix =
+                    if elems_left > 1 then
+                        List.append(buffer_with_elem, Num.to_u8(','))
                     else
-                        bufferWithElem
+                        buffer_with_elem
 
-                { buffer: bufferWithSuffix, elemsLeft: elemsLeft - 1 }
+                { buffer: buffer_with_suffix, elems_left: elems_left - 1 }
 
-        head = List.append bytes (Num.toU8 '[')
-        { buffer: withList } = List.walk lst { buffer: head, elemsLeft: List.len lst } writeList
+        head = List.append(bytes, Num.to_u8('['))
+        { buffer: with_list } = List.walk(lst, { buffer: head, elems_left: List.len(lst) }, write_list)
 
-        List.append withList (Num.toU8 ']')
+        List.append(with_list, Num.to_u8(']')))
 
 # Test encode list of floats
 expect
     input : List F64
     input = [-1, 0.00001, 1e12, 2.0e-2, 0.0003, 43]
-    actual = Encode.toBytes input utf8
-    expected = Str.toUtf8 "[-1,0.00001,1000000000000,0.02,0.0003,43]"
+    actual = Encode.to_bytes(input, utf8)
+    expected = Str.to_utf8("[-1,0.00001,1000000000000,0.02,0.0003,43]")
 
     actual == expected
 
-encodeRecord = \fields ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull } ->
-        writeRecord = \{ buffer, fieldsLeft }, { key, value } ->
+encode_record = \fields ->
+    Encode.custom(\bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
+        write_record = \{ buffer, fields_left }, { key, value } ->
 
-            fieldValue =
+            field_value =
                 []
-                |> Encode.appendWith value (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
-                |> emptyToNull emptyEncodeAsNull.record
+                |> Encode.append_with(value, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }))
+                |> empty_to_null(empty_encode_as_null.record)
 
             # If our encoder returned [] we just skip the field
 
-            emptyEncode = fieldValue == []
-            if emptyEncode then
-                { buffer, fieldsLeft: fieldsLeft - 1 }
+            empty_encode = field_value == []
+            if empty_encode then
+                { buffer, fields_left: fields_left - 1 }
             else
-                fieldName = toObjectNameUsingMap key fieldNameMapping
-                bufferWithKeyValue =
-                    List.append buffer (Num.toU8 '"')
-                    |> List.concat (Str.toUtf8 fieldName)
-                    |> List.append (Num.toU8 '"')
-                    |> List.append (Num.toU8 ':') # Note we need to encode using the json config here
-                    |> List.concat fieldValue
+                field_name = to_object_name_using_map(key, field_name_mapping)
+                buffer_with_key_value =
+                    List.append(buffer, Num.to_u8('"'))
+                    |> List.concat(Str.to_utf8(field_name))
+                    |> List.append(Num.to_u8('"'))
+                    |> List.append(Num.to_u8(':')) # Note we need to encode using the json config here
+                    |> List.concat(field_value)
 
-                bufferWithSuffix =
-                    if fieldsLeft > 1 then
-                        List.append bufferWithKeyValue (Num.toU8 ',')
+                buffer_with_suffix =
+                    if fields_left > 1 then
+                        List.append(buffer_with_key_value, Num.to_u8(','))
                     else
-                        bufferWithKeyValue
+                        buffer_with_key_value
 
-                { buffer: bufferWithSuffix, fieldsLeft: fieldsLeft - 1 }
+                { buffer: buffer_with_suffix, fields_left: fields_left - 1 }
 
-        bytesHead = List.append bytes (Num.toU8 '{')
-        { buffer: bytesWithRecord } = List.walk fields { buffer: bytesHead, fieldsLeft: List.len fields } writeRecord
+        bytes_head = List.append(bytes, Num.to_u8('{'))
+        { buffer: bytes_with_record } = List.walk(fields, { buffer: bytes_head, fields_left: List.len(fields) }, write_record)
 
-        List.append bytesWithRecord (Num.toU8 '}')
+        List.append(bytes_with_record, Num.to_u8('}')))
 
 # Test encode for a record with two strings ignoring whitespace
 expect
-    input = { fruitCount: 2, ownerName: "Farmer Joe" }
-    encoder = utf8With { fieldNameMapping: PascalCase }
-    actual = Encode.toBytes input encoder
-    expected = Str.toUtf8 "{\"FruitCount\":2,\"OwnerName\":\"Farmer Joe\"}"
+    input = { fruit_count: 2, owner_name: "Farmer Joe" }
+    encoder = utf8_with({ field_name_mapping: PascalCase })
+    actual = Encode.to_bytes(input, encoder)
+    expected = Str.to_utf8("{\"FruitCount\":2,\"OwnerName\":\"Farmer Joe\"}")
 
     actual == expected
 
 # Test encode of record with an array of strings and a boolean field
 expect
-    input = { fruitFlavours: ["Apples", "Bananas", "Pears"], isFresh: Bool.true }
-    encoder = utf8With { fieldNameMapping: KebabCase }
-    actual = Encode.toBytes input encoder
-    expected = Str.toUtf8 "{\"fruit-flavours\":[\"Apples\",\"Bananas\",\"Pears\"],\"is-fresh\":true}"
+    input = { fruit_flavours: ["Apples", "Bananas", "Pears"], is_fresh: Bool.true }
+    encoder = utf8_with({ field_name_mapping: KebabCase })
+    actual = Encode.to_bytes(input, encoder)
+    expected = Str.to_utf8("{\"fruit-flavours\":[\"Apples\",\"Bananas\",\"Pears\"],\"is-fresh\":true}")
 
     actual == expected
 
 # Test encode of record with a string and number field
 expect
-    input = { firstSegment: "ab", secondSegment: 10u8 }
-    encoder = utf8With { fieldNameMapping: SnakeCase }
-    actual = Encode.toBytes input encoder
-    expected = Str.toUtf8 "{\"first_segment\":\"ab\",\"second_segment\":10}"
+    input = { first_segment: "ab", second_segment: 10u8 }
+    encoder = utf8_with({ field_name_mapping: SnakeCase })
+    actual = Encode.to_bytes(input, encoder)
+    expected = Str.to_utf8("{\"first_segment\":\"ab\",\"second_segment\":10}")
 
     actual == expected
 
 # Test encode of record of a record
 expect
     input = { outer: { inner: "a" }, other: { one: "b", two: 10u8 } }
-    encoder = utf8With { fieldNameMapping: Custom toYellingCase }
-    actual = Encode.toBytes input encoder
-    expected = Str.toUtf8 "{\"OTHER\":{\"ONE\":\"b\",\"TWO\":10},\"OUTER\":{\"INNER\":\"a\"}}"
+    encoder = utf8_with({ field_name_mapping: Custom(to_yelling_case) })
+    actual = Encode.to_bytes(input, encoder)
+    expected = Str.to_utf8("{\"OTHER\":{\"ONE\":\"b\",\"TWO\":10},\"OUTER\":{\"INNER\":\"a\"}}")
 
     actual == expected
 
-toYellingCase = \str ->
-    Str.toUtf8 str
-    |> List.map toUppercase
-    |> Str.fromUtf8
-    |> crashOnBadUtf8Error
+to_yelling_case = \str ->
+    Str.to_utf8(str)
+    |> List.map(to_uppercase)
+    |> Str.from_utf8
+    |> crash_on_bad_utf8_error
 
-encodeTuple = \elems ->
-    Encode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull } ->
-        writeTuple = \{ buffer, elemsLeft }, elemEncoder ->
-            beforeBufferLen = buffer |> List.len
+encode_tuple = \elems ->
+    Encode.custom(\bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
+        write_tuple = \{ buffer, elems_left }, elem_encoder ->
+            before_buffer_len = buffer |> List.len
 
-            bufferWithElem =
-                elemBytes =
-                    Encode.appendWith [] (elemEncoder) (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
-                    |> emptyToNull emptyEncodeAsNull.tuple
-                buffer |> List.concat elemBytes
+            buffer_with_elem =
+                elem_bytes =
+                    Encode.append_with([], elem_encoder, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }))
+                    |> empty_to_null(empty_encode_as_null.tuple)
+                buffer |> List.concat(elem_bytes)
             # If our encoder returned [] we just skip the elem
-            emptyEncode = bufferWithElem |> List.len == beforeBufferLen
-            if emptyEncode then
-                { buffer: bufferWithElem, elemsLeft: elemsLeft - 1 }
+            empty_encode = buffer_with_elem |> List.len == before_buffer_len
+            if empty_encode then
+                { buffer: buffer_with_elem, elems_left: elems_left - 1 }
             else
-                bufferWithSuffix =
-                    if elemsLeft > 1 then
-                        List.append bufferWithElem (Num.toU8 ',')
+                buffer_with_suffix =
+                    if elems_left > 1 then
+                        List.append(buffer_with_elem, Num.to_u8(','))
                     else
-                        bufferWithElem
+                        buffer_with_elem
 
-                { buffer: bufferWithSuffix, elemsLeft: elemsLeft - 1 }
+                { buffer: buffer_with_suffix, elems_left: elems_left - 1 }
 
-        bytesHead = List.append bytes (Num.toU8 '[')
-        { buffer: bytesWithRecord } = List.walk elems { buffer: bytesHead, elemsLeft: List.len elems } writeTuple
+        bytes_head = List.append(bytes, Num.to_u8('['))
+        { buffer: bytes_with_record } = List.walk(elems, { buffer: bytes_head, elems_left: List.len(elems) }, write_tuple)
 
-        List.append bytesWithRecord (Num.toU8 ']')
+        List.append(bytes_with_record, Num.to_u8(']')))
 
 # Test encode of tuple
 expect
     input = ("The Answer is", 42)
-    actual = Encode.toBytes input utf8
-    expected = Str.toUtf8 "[\"The Answer is\",42]"
+    actual = Encode.to_bytes(input, utf8)
+    expected = Str.to_utf8("[\"The Answer is\",42]")
 
     actual == expected
 
-encodeTag = \name, payload ->
-    Encode.custom \bytes, @Json jsonFmt ->
+encode_tag = \name, payload ->
+    Encode.custom(\bytes, @Json(json_fmt) ->
         # Idea: encode `A v1 v2` as `{"A": [v1, v2]}`
-        writePayload = \{ buffer, itemsLeft }, encoder ->
-            bufferWithValue = Encode.appendWith buffer encoder (@Json jsonFmt)
-            bufferWithSuffix =
-                if itemsLeft > 1 then
-                    List.append bufferWithValue (Num.toU8 ',')
+        write_payload = \{ buffer, items_left }, encoder ->
+            buffer_with_value = Encode.append_with(buffer, encoder, @Json(json_fmt))
+            buffer_with_suffix =
+                if items_left > 1 then
+                    List.append(buffer_with_value, Num.to_u8(','))
                 else
-                    bufferWithValue
+                    buffer_with_value
 
-            { buffer: bufferWithSuffix, itemsLeft: itemsLeft - 1 }
+            { buffer: buffer_with_suffix, items_left: items_left - 1 }
 
-        bytesHead =
-            List.append bytes (Num.toU8 '{')
-            |> List.append (Num.toU8 '"')
-            |> List.concat (Str.toUtf8 name)
-            |> List.append (Num.toU8 '"')
-            |> List.append (Num.toU8 ':')
-            |> List.append (Num.toU8 '[')
+        bytes_head =
+            List.append(bytes, Num.to_u8('{'))
+            |> List.append(Num.to_u8('"'))
+            |> List.concat(Str.to_utf8(name))
+            |> List.append(Num.to_u8('"'))
+            |> List.append(Num.to_u8(':'))
+            |> List.append(Num.to_u8('['))
 
-        { buffer: bytesWithPayload } = List.walk payload { buffer: bytesHead, itemsLeft: List.len payload } writePayload
+        { buffer: bytes_with_payload } = List.walk(payload, { buffer: bytes_head, items_left: List.len(payload) }, write_payload)
 
-        List.append bytesWithPayload (Num.toU8 ']')
-        |> List.append (Num.toU8 '}')
+        List.append(bytes_with_payload, Num.to_u8(']'))
+        |> List.append(Num.to_u8('}')))
 
 # Test encode of tag
 expect
-    input = TheAnswer "is" 42
-    encoder = utf8With { fieldNameMapping: KebabCase }
-    actual = Encode.toBytes input encoder
-    expected = Str.toUtf8 "{\"TheAnswer\":[\"is\",42]}"
+    input = TheAnswer("is", 42)
+    encoder = utf8_with({ field_name_mapping: KebabCase })
+    actual = Encode.to_bytes(input, encoder)
+    expected = Str.to_utf8("{\"TheAnswer\":[\"is\",42]}")
 
     actual == expected
 
-decodeU8 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_u8 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toU8
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_u8)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of U8
 expect
-    actual = Str.toUtf8 "255" |> Decode.fromBytes utf8
-    actual == Ok 255u8
+    actual = Str.to_utf8("255") |> Decode.from_bytes(utf8)
+    actual == Ok(255u8)
 
-decodeU16 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_u16 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toU16
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_u16)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of U16
 expect
-    actual = Str.toUtf8 "65535" |> Decode.fromBytes utf8
-    actual == Ok 65_535u16
+    actual = Str.to_utf8("65535") |> Decode.from_bytes(utf8)
+    actual == Ok(65_535u16)
 
-decodeU32 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_u32 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toU32
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_u32)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of U32
 expect
-    actual = Str.toUtf8 "4000000000" |> Decode.fromBytes utf8
-    actual == Ok 4_000_000_000u32
+    actual = Str.to_utf8("4000000000") |> Decode.from_bytes(utf8)
+    actual == Ok(4_000_000_000u32)
 
-decodeU64 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_u64 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toU64
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_u64)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of U64
 expect
-    actual = Str.toUtf8 "18446744073709551614" |> Decode.fromBytes utf8
-    actual == Ok 18_446_744_073_709_551_614u64
+    actual = Str.to_utf8("18446744073709551614") |> Decode.from_bytes(utf8)
+    actual == Ok(18_446_744_073_709_551_614u64)
 
-decodeU128 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_u128 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toU128
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_u128)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of U128
 expect
-    actual = Str.toUtf8 "1234567" |> Decode.fromBytesPartial utf8
-    actual.result == Ok 1234567u128
+    actual = Str.to_utf8("1234567") |> Decode.from_bytes_partial(utf8)
+    actual.result == Ok(1234567u128)
 
-decodeI8 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_i8 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toI8
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_i8)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of I8
 expect
-    actual = Str.toUtf8 "-125" |> Decode.fromBytesPartial utf8
-    actual.result == Ok -125i8
+    actual = Str.to_utf8("-125") |> Decode.from_bytes_partial(utf8)
+    actual.result == Ok(-125i8)
 
-decodeI16 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_i16 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toI16
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_i16)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of I16
 expect
-    actual = Str.toUtf8 "-32768" |> Decode.fromBytesPartial utf8
-    actual.result == Ok -32_768i16
+    actual = Str.to_utf8("-32768") |> Decode.from_bytes_partial(utf8)
+    actual.result == Ok(-32_768i16)
 
-decodeI32 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_i32 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toI32
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_i32)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of I32
 expect
-    actual = Str.toUtf8 "-2147483648" |> Decode.fromBytesPartial utf8
-    actual.result == Ok -2_147_483_648i32
+    actual = Str.to_utf8("-2147483648") |> Decode.from_bytes_partial(utf8)
+    actual.result == Ok(-2_147_483_648i32)
 
-decodeI64 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_i64 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toI64
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_i64)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of I64
 expect
-    actual = Str.toUtf8 "-9223372036854775808" |> Decode.fromBytesPartial utf8
-    actual.result == Ok -9_223_372_036_854_775_808i64
+    actual = Str.to_utf8("-9223372036854775808") |> Decode.from_bytes_partial(utf8)
+    actual.result == Ok(-9_223_372_036_854_775_808i64)
 
-decodeI128 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
-
-    result =
-        taken
-        |> Str.fromUtf8
-        |> Result.try Str.toI128
-        |> Result.mapErr \_ -> TooShort
-
-    { result, rest }
-
-decodeF32 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_i128 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toF32
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_i128)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
+
+decode_f32 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
+
+    result =
+        taken
+        |> Str.from_utf8
+        |> Result.try(Str.to_f32)
+        |> Result.map_err(\_ -> TooShort)
+
+    { result, rest })
 
 # Test decode of F32
 expect
     actual : DecodeResult F32
-    actual = Str.toUtf8 "12.34e-5" |> Decode.fromBytesPartial utf8
-    numStr = actual.result |> Result.map Num.toStr
+    actual = Str.to_utf8("12.34e-5") |> Decode.from_bytes_partial(utf8)
+    num_str = actual.result |> Result.map(Num.to_str)
 
-    Result.withDefault numStr "" == "0.00012339999375399202"
+    Result.with_default(num_str, "") == "0.00012339999375399202"
 
-decodeF64 = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_f64 = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toF64
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_f64)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of F64
 expect
     actual : DecodeResult F64
-    actual = Str.toUtf8 "12.34e-5" |> Decode.fromBytesPartial utf8
-    numStr = actual.result |> Result.map Num.toStr
+    actual = Str.to_utf8("12.34e-5") |> Decode.from_bytes_partial(utf8)
+    num_str = actual.result |> Result.map(Num.to_str)
 
-    Result.withDefault numStr "" == "0.0001234"
+    Result.with_default(num_str, "") == "0.0001234"
 
-decodeDec = Decode.custom \bytes, @Json {} ->
-    { taken, rest } = takeJsonNumber bytes
+decode_dec = Decode.custom(\bytes, @Json({}) ->
+    { taken, rest } = take_json_number(bytes)
 
     result =
         taken
-        |> Str.fromUtf8
-        |> Result.try Str.toDec
-        |> Result.mapErr \_ -> TooShort
+        |> Str.from_utf8
+        |> Result.try(Str.to_dec)
+        |> Result.map_err(\_ -> TooShort)
 
-    { result, rest }
+    { result, rest })
 
 # Test decode of Dec
 expect
     actual : DecodeResult Dec
-    actual = Str.toUtf8 "12.0034" |> Decode.fromBytesPartial utf8
+    actual = Str.to_utf8("12.0034") |> Decode.from_bytes_partial(utf8)
 
-    actual.result == Ok 12.0034dec
+    actual.result == Ok(12.0034dec)
 
-decodeBool = Decode.custom \bytes, @Json {} ->
+decode_bool = Decode.custom(\bytes, @Json({}) ->
     when bytes is
-        ['f', 'a', 'l', 's', 'e', ..] -> { result: Ok Bool.false, rest: List.dropFirst bytes 5 }
-        ['t', 'r', 'u', 'e', ..] -> { result: Ok Bool.true, rest: List.dropFirst bytes 4 }
-        _ -> { result: Err TooShort, rest: bytes }
+        ['f', 'a', 'l', 's', 'e', ..] -> { result: Ok(Bool.false), rest: List.drop_first(bytes, 5) }
+        ['t', 'r', 'u', 'e', ..] -> { result: Ok(Bool.true), rest: List.drop_first(bytes, 4) }
+        _ -> { result: Err(TooShort), rest: bytes })
 
 # Test decode of Bool
 expect
-    actual = "true\n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Ok Bool.true
+    actual = "true\n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Ok(Bool.true)
     actual.result == expected
 
 # Test decode of Bool
 expect
-    actual = "false ]\n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Ok Bool.false
+    actual = "false ]\n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Ok(Bool.false)
     actual.result == expected
 
-decodeTuple = \initialState, stepElem, finalizer -> Decode.custom \initialBytes, jsonFmt ->
+decode_tuple = \initial_state, step_elem, finalizer ->
+    Decode.custom(\initial_bytes, json_fmt ->
         # NB: the stepper function must be passed explicitly until #2894 is resolved.
-        decodeElems = \stepper, state, index, bytes ->
-            decodeAttempt =
-                when stepper state index is
+        decode_elems = \stepper, state, index, bytes ->
+            decode_attempt =
+                when stepper(state, index) is
                     TooLong ->
                         bytes
                         |> anything
-                        |> tryDecode \{ rest: beforeCommaOrBreak } ->
-                            { result: Ok state, rest: beforeCommaOrBreak }
+                        |> try_decode(\{ rest: before_comma_or_break } ->
+                            { result: Ok(state), rest: before_comma_or_break })
 
-                    Next decoder ->
-                        decodePotentialNull (eatWhitespace bytes) decoder jsonFmt
+                    Next(decoder) ->
+                        decode_potential_null(eat_whitespace(bytes), decoder, json_fmt)
 
-            tryDecode decodeAttempt \{ val: newState, rest: beforeCommaOrBreak } ->
-                { result: commaResult, rest: nextBytes } = comma beforeCommaOrBreak
+            try_decode(decode_attempt, \{ val: new_state, rest: before_comma_or_break } ->
+                { result: comma_result, rest: next_bytes } = comma(before_comma_or_break)
 
-                when commaResult is
-                    Ok {} -> decodeElems stepElem newState (index + 1) nextBytes
-                    Err _ -> { result: Ok newState, rest: nextBytes }
+                when comma_result is
+                    Ok({}) -> decode_elems(step_elem, new_state, (index + 1), next_bytes)
+                    Err(_) -> { result: Ok(new_state), rest: next_bytes })
 
-        initialBytes
-        |> openBracket
-        |> tryDecode \{ rest: afterBracketBytes } ->
-            decodeElems stepElem initialState 0 (eatWhitespace afterBracketBytes)
-            |> tryDecode \{ val: endStateResult, rest: beforeClosingBracketBytes } ->
-                (eatWhitespace beforeClosingBracketBytes)
-                |> closingBracket
-                |> tryDecode \{ rest: afterTupleBytes } ->
-                    when finalizer endStateResult is
-                        Ok val -> { result: Ok val, rest: afterTupleBytes }
-                        Err e -> { result: Err e, rest: afterTupleBytes }
+        initial_bytes
+        |> open_bracket
+        |> try_decode(\{ rest: after_bracket_bytes } ->
+            decode_elems(step_elem, initial_state, 0, eat_whitespace(after_bracket_bytes))
+            |> try_decode(\{ val: end_state_result, rest: before_closing_bracket_bytes } ->
+                (eat_whitespace(before_closing_bracket_bytes))
+                |> closing_bracket
+                |> try_decode(\{ rest: after_tuple_bytes } ->
+                    when finalizer(end_state_result) is
+                        Ok(val) -> { result: Ok(val), rest: after_tuple_bytes }
+                        Err(e) -> { result: Err(e), rest: after_tuple_bytes }))))
 
 # Test decode of tuple
 expect
-    input = Str.toUtf8 "[\"The Answer is\",42]"
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("[\"The Answer is\",42]")
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    actual.result == Ok ("The Answer is", 42)
+    actual.result == Ok(("The Answer is", 42))
 
 # Test decode with whitespace
 expect
-    input = Str.toUtf8 "[ 123,\t456\n]"
-    actual = Decode.fromBytesPartial input utf8
-    expected = Ok (123, 456)
+    input = Str.to_utf8("[ 123,\t456\n]")
+    actual = Decode.from_bytes_partial(input, utf8)
+    expected = Ok((123, 456))
 
     actual.result == expected
 
-parseExactChar : List U8, U8 -> DecodeResult {}
-parseExactChar = \bytes, char ->
-    when List.get bytes 0 is
-        Ok c ->
+parse_exact_char : List U8, U8 -> DecodeResult {}
+parse_exact_char = \bytes, char ->
+    when List.get(bytes, 0) is
+        Ok(c) ->
             if
                 c == char
             then
-                { result: Ok {}, rest: (List.splitAt bytes 1).others }
+                { result: Ok({}), rest: (List.split_at(bytes, 1)).others }
             else
-                { result: Err TooShort, rest: bytes }
+                { result: Err(TooShort), rest: bytes }
 
-        Err _ -> { result: Err TooShort, rest: bytes }
+        Err(_) -> { result: Err(TooShort), rest: bytes }
 
-openBracket : List U8 -> DecodeResult {}
-openBracket = \bytes -> parseExactChar bytes '['
+open_bracket : List U8 -> DecodeResult {}
+open_bracket = \bytes -> parse_exact_char(bytes, '[')
 
-closingBracket : List U8 -> DecodeResult {}
-closingBracket = \bytes -> parseExactChar bytes ']'
+closing_bracket : List U8 -> DecodeResult {}
+closing_bracket = \bytes -> parse_exact_char(bytes, ']')
 
 anything : List U8 -> DecodeResult {}
-anything = \bytes -> { result: Err TooShort, rest: bytes }
+anything = \bytes -> { result: Err(TooShort), rest: bytes }
 
 comma : List U8 -> DecodeResult {}
-comma = \bytes -> parseExactChar bytes ','
+comma = \bytes -> parse_exact_char(bytes, ',')
 
-tryDecode : DecodeResult a, ({ val : a, rest : List U8 } -> DecodeResult b) -> DecodeResult b
-tryDecode = \{ result, rest }, mapper ->
+try_decode : DecodeResult a, ({ val : a, rest : List U8 } -> DecodeResult b) -> DecodeResult b
+try_decode = \{ result, rest }, mapper ->
     when result is
-        Ok val -> mapper { val, rest }
-        Err e -> { result: Err e, rest }
+        Ok(val) -> mapper({ val, rest })
+        Err(e) -> { result: Err(e), rest }
 
 # JSON NUMBER PRIMITIVE --------------------------------------------------------
 
@@ -803,51 +804,51 @@ tryDecode = \{ result, rest }, mapper ->
 # Note that this does not handle leading whitespace, any whitespace must be
 # handled in json list or record decoding.
 #
-# |> List.dropIf \b -> b == '+'
+# |> List.drop_if(\b -> b == '+')
 # TODO ^^ not needed if roc supports "1e+2", this supports
 # "+" which is permitted in Json numbers
 #
-# |> List.map \b -> if b == 'E' then 'e' else b
+# |> List.map(\b -> if b == 'E' then 'e' else b)
 # TODO ^^ not needed if roc supports "1E2", this supports
 # "E" which is permitted in Json numbers
-takeJsonNumber : List U8 -> { taken : List U8, rest : List U8 }
-takeJsonNumber = \bytes ->
-    when List.walkUntil bytes Start numberHelp is
-        Finish n | Zero n | Integer n | FractionB n | ExponentC n ->
+take_json_number : List U8 -> { taken : List U8, rest : List U8 }
+take_json_number = \bytes ->
+    when List.walk_until(bytes, Start, number_help) is
+        Finish(n) | Zero(n) | Integer(n) | FractionB(n) | ExponentC(n) ->
             taken =
                 bytes
-                |> List.sublist { start: 0, len: n }
-                |> List.dropIf \b -> b == '+'
-                |> List.map \b -> if b == 'E' then 'e' else b
+                |> List.sublist({ start: 0, len: n })
+                |> List.drop_if(\b -> b == '+')
+                |> List.map(\b -> if b == 'E' then 'e' else b)
 
-            { taken, rest: List.dropFirst bytes n }
+            { taken, rest: List.drop_first(bytes, n) }
 
         _ ->
             { taken: [], rest: bytes }
 
-numberHelp : NumberState, U8 -> [Continue NumberState, Break NumberState]
-numberHelp = \state, byte ->
+number_help : NumberState, U8 -> [Continue NumberState, Break NumberState]
+number_help = \state, byte ->
     when (state, byte) is
-        (Start, b) if b == '0' -> Continue (Zero 1)
-        (Start, b) if b == '-' -> Continue (Minus 1)
-        (Start, b) if isDigit1to9 b -> Continue (Integer 1)
-        (Minus n, b) if b == '0' -> Continue (Zero (n + 1))
-        (Minus n, b) if isDigit1to9 b -> Continue (Integer (n + 1))
-        (Zero n, b) if b == '.' -> Continue (FractionA (n + 1))
-        (Zero n, b) if isValidEnd b -> Break (Finish n)
-        (Integer n, b) if isDigit0to9 b && n <= maxBytes -> Continue (Integer (n + 1))
-        (Integer n, b) if b == '.' && n < maxBytes -> Continue (FractionA (n + 1))
-        (Integer n, b) if isValidEnd b && n <= maxBytes -> Break (Finish n)
-        (FractionA n, b) if isDigit0to9 b && n <= maxBytes -> Continue (FractionB (n + 1))
-        (FractionB n, b) if isDigit0to9 b && n <= maxBytes -> Continue (FractionB (n + 1))
-        (FractionB n, b) if b == 'e' || b == 'E' && n <= maxBytes -> Continue (ExponentA (n + 1))
-        (FractionB n, b) if isValidEnd b && n <= maxBytes -> Break (Finish n)
-        (ExponentA n, b) if b == '-' || b == '+' && n <= maxBytes -> Continue (ExponentB (n + 1))
-        (ExponentA n, b) if isDigit0to9 b && n <= maxBytes -> Continue (ExponentC (n + 1))
-        (ExponentB n, b) if isDigit0to9 b && n <= maxBytes -> Continue (ExponentC (n + 1))
-        (ExponentC n, b) if isDigit0to9 b && n <= maxBytes -> Continue (ExponentC (n + 1))
-        (ExponentC n, b) if isValidEnd b && n <= maxBytes -> Break (Finish n)
-        _ -> Break Invalid
+        (Start, b) if b == '0' -> Continue(Zero(1))
+        (Start, b) if b == '-' -> Continue(Minus(1))
+        (Start, b) if is_digit1to9(b) -> Continue(Integer(1))
+        (Minus(n), b) if b == '0' -> Continue(Zero((n + 1)))
+        (Minus(n), b) if is_digit1to9(b) -> Continue(Integer((n + 1)))
+        (Zero(n), b) if b == '.' -> Continue(FractionA((n + 1)))
+        (Zero(n), b) if is_valid_end(b) -> Break(Finish(n))
+        (Integer(n), b) if is_digit0to9(b) && n <= max_bytes -> Continue(Integer((n + 1)))
+        (Integer(n), b) if b == '.' && n < max_bytes -> Continue(FractionA((n + 1)))
+        (Integer(n), b) if is_valid_end(b) && n <= max_bytes -> Break(Finish(n))
+        (FractionA(n), b) if is_digit0to9(b) && n <= max_bytes -> Continue(FractionB((n + 1)))
+        (FractionB(n), b) if is_digit0to9(b) && n <= max_bytes -> Continue(FractionB((n + 1)))
+        (FractionB(n), b) if b == 'e' || b == 'E' && n <= max_bytes -> Continue(ExponentA((n + 1)))
+        (FractionB(n), b) if is_valid_end(b) && n <= max_bytes -> Break(Finish(n))
+        (ExponentA(n), b) if b == '-' || b == '+' && n <= max_bytes -> Continue(ExponentB((n + 1)))
+        (ExponentA(n), b) if is_digit0to9(b) && n <= max_bytes -> Continue(ExponentC((n + 1)))
+        (ExponentB(n), b) if is_digit0to9(b) && n <= max_bytes -> Continue(ExponentC((n + 1)))
+        (ExponentC(n), b) if is_digit0to9(b) && n <= max_bytes -> Continue(ExponentC((n + 1)))
+        (ExponentC(n), b) if is_valid_end(b) && n <= max_bytes -> Break(Finish(n))
+        _ -> Break(Invalid)
 
 NumberState : [
     Start,
@@ -865,201 +866,201 @@ NumberState : [
 
 # TODO confirm if we would like to be able to decode
 # "340282366920938463463374607431768211455" which is MAX U128 and 39 bytes
-maxBytes : U64
-maxBytes = 21 # Max bytes in a double precision float
+max_bytes : U64
+max_bytes = 21 # Max bytes in a double precision float
 
-isDigit0to9 : U8 -> Bool
-isDigit0to9 = \b -> b >= '0' && b <= '9'
+is_digit0to9 : U8 -> Bool
+is_digit0to9 = \b -> b >= '0' && b <= '9'
 
-isDigit1to9 : U8 -> Bool
-isDigit1to9 = \b -> b >= '1' && b <= '9'
+is_digit1to9 : U8 -> Bool
+is_digit1to9 = \b -> b >= '1' && b <= '9'
 
-isValidEnd : U8 -> Bool
-isValidEnd = \b ->
+is_valid_end : U8 -> Bool
+is_valid_end = \b ->
     when b is
         ']' | ',' | ' ' | '\n' | '\r' | '\t' | '}' -> Bool.true
         _ -> Bool.false
 
 expect
-    actual = "0.0" |> Str.toUtf8 |> Decode.fromBytes utf8
-    expected = Ok 0.0dec
+    actual = "0.0" |> Str.to_utf8 |> Decode.from_bytes(utf8)
+    expected = Ok(0.0dec)
     actual == expected
 
 expect
-    actual = "0" |> Str.toUtf8 |> Decode.fromBytes utf8
-    expected = Ok 0u8
+    actual = "0" |> Str.to_utf8 |> Decode.from_bytes(utf8)
+    expected = Ok(0u8)
     actual == expected
 
 expect
-    actual = "1 " |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = { result: Ok 1dec, rest: [' '] }
+    actual = "1 " |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = { result: Ok(1dec), rest: [' '] }
     actual == expected
 
 expect
-    actual = "2]" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = { result: Ok 2u64, rest: [']'] }
+    actual = "2]" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = { result: Ok(2u64), rest: [']'] }
     actual == expected
 
 expect
-    actual = "30,\n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = { result: Ok 30i64, rest: [',', '\n'] }
-    actual == expected
-
-expect
-    actual : DecodeResult U16
-    actual = "+1" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = { result: Err TooShort, rest: ['+', '1'] }
+    actual = "30,\n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = { result: Ok(30i64), rest: [',', '\n'] }
     actual == expected
 
 expect
     actual : DecodeResult U16
-    actual = ".0" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = { result: Err TooShort, rest: ['.', '0'] }
+    actual = "+1" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = { result: Err(TooShort), rest: ['+', '1'] }
+    actual == expected
+
+expect
+    actual : DecodeResult U16
+    actual = ".0" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = { result: Err(TooShort), rest: ['.', '0'] }
     actual == expected
 
 expect
     actual : DecodeResult U64
-    actual = "-.1" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    actual.result == Err TooShort
+    actual = "-.1" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    actual.result == Err(TooShort)
 
 expect
     actual : DecodeResult Dec
-    actual = "72" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Ok 72dec
+    actual = "72" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Ok(72dec)
     actual.result == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "-0" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Ok 0dec
+    actual = "-0" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Ok(0dec)
     actual.result == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "-7" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Ok -7dec
+    actual = "-7" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Ok(-7dec)
     actual.result == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "-0\n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = { result: Ok 0dec, rest: ['\n'] }
+    actual = "-0\n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = { result: Ok(0dec), rest: ['\n'] }
     actual == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "123456789000 \n" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = { result: Ok 123456789000dec, rest: [' ', '\n'] }
+    actual = "123456789000 \n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = { result: Ok(123456789000dec), rest: [' ', '\n'] }
     actual == expected
 
 expect
     actual : DecodeResult Dec
-    actual = "-12.03" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Ok -12.03
+    actual = "-12.03" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Ok(-12.03)
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "-12." |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Err TooShort
+    actual = "-12." |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Err(TooShort)
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "01.1" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Err TooShort
+    actual = "01.1" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Err(TooShort)
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = ".0" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Err TooShort
+    actual = ".0" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Err(TooShort)
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "1.e1" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Err TooShort
+    actual = "1.e1" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Err(TooShort)
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "-1.2E" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Err TooShort
+    actual = "-1.2E" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Err(TooShort)
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "0.1e+" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Err TooShort
+    actual = "0.1e+" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Err(TooShort)
     actual.result == expected
 
 expect
     actual : DecodeResult U64
-    actual = "-03" |> Str.toUtf8 |> Decode.fromBytesPartial utf8
-    expected = Err TooShort
+    actual = "-03" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
+    expected = Err(TooShort)
     actual.result == expected
 
 # JSON STRING PRIMITIVE --------------------------------------------------------
 
 # Decode a Json string primitive into a RocStr
 #
-# Note that decodeStr does not handle leading whitespace, any whitespace must be
+# Note that decode_str does not handle leading whitespace, any whitespace must be
 # handled in json list or record decodin.
-decodeString = Decode.custom \bytes, @Json {} ->
+decode_string = Decode.custom(\bytes, @Json({}) ->
 
-    { taken: strBytes, rest } = takeJsonString bytes
+    { taken: str_bytes, rest } = take_json_string(bytes)
 
-    if List.isEmpty strBytes then
-        { result: Err TooShort, rest: bytes }
+    if List.is_empty(str_bytes) then
+        { result: Err(TooShort), rest: bytes }
     else
         # Remove starting and ending quotation marks, replace unicode
         # escpapes with Roc equivalent, and try to parse RocStr from
         # bytes
         result =
-            strBytes
-            |> List.sublist {
+            str_bytes
+            |> List.sublist({
                 start: 1,
-                len: Num.subSaturated (List.len strBytes) 2,
-            }
-            |> \bytesWithoutQuotationMarks ->
-                replaceEscapedChars { inBytes: bytesWithoutQuotationMarks, outBytes: [] }
-            |> .outBytes
-            |> Str.fromUtf8
+                len: Num.sub_saturated(List.len(str_bytes), 2),
+            })
+            |> \bytes_without_quotation_marks ->
+                replace_escaped_chars({ in_bytes: bytes_without_quotation_marks, out_bytes: [] })
+            |> .out_bytes
+            |> Str.from_utf8
 
         when result is
-            Ok str ->
-                { result: Ok str, rest }
+            Ok(str) ->
+                { result: Ok(str), rest }
 
-            Err _ ->
-                { result: Err TooShort, rest: bytes }
+            Err(_) ->
+                { result: Err(TooShort), rest: bytes })
 
-takeJsonString : List U8 -> { taken : List U8, rest : List U8 }
-takeJsonString = \bytes ->
-    when List.walkUntil bytes Start stringHelp is
-        Finish n ->
+take_json_string : List U8 -> { taken : List U8, rest : List U8 }
+take_json_string = \bytes ->
+    when List.walk_until(bytes, Start, string_help) is
+        Finish(n) ->
             {
-                taken: List.sublist bytes { start: 0, len: n },
-                rest: List.dropFirst bytes n,
+                taken: List.sublist(bytes, { start: 0, len: n }),
+                rest: List.drop_first(bytes, n),
             }
 
         _ ->
             { taken: [], rest: bytes }
 
-stringHelp : StringState, U8 -> [Continue StringState, Break StringState]
-stringHelp = \state, byte ->
+string_help : StringState, U8 -> [Continue StringState, Break StringState]
+string_help = \state, byte ->
     when (state, byte) is
-        (Start, b) if b == '"' -> Continue (Chars 1)
-        (Chars n, b) if b == '"' -> Break (Finish (n + 1))
-        (Chars n, b) if b == '\\' -> Continue (Escaped (n + 1))
-        (Chars n, _) -> Continue (Chars (n + 1))
-        (Escaped n, b) if isEscapedChar b -> Continue (Chars (n + 1))
-        (Escaped n, b) if b == 'u' -> Continue (UnicodeA (n + 1))
-        (UnicodeA n, b) if isHex b -> Continue (UnicodeB (n + 1))
-        (UnicodeB n, b) if isHex b -> Continue (UnicodeC (n + 1))
-        (UnicodeC n, b) if isHex b -> Continue (UnicodeD (n + 1))
-        (UnicodeD n, b) if isHex b -> Continue (Chars (n + 1))
-        _ -> Break (InvalidNumber)
+        (Start, b) if b == '"' -> Continue(Chars(1))
+        (Chars(n), b) if b == '"' -> Break(Finish((n + 1)))
+        (Chars(n), b) if b == '\\' -> Continue(Escaped((n + 1)))
+        (Chars(n), _) -> Continue(Chars((n + 1)))
+        (Escaped(n), b) if is_escaped_char(b) -> Continue(Chars((n + 1)))
+        (Escaped(n), b) if b == 'u' -> Continue(UnicodeA((n + 1)))
+        (UnicodeA(n), b) if is_hex(b) -> Continue(UnicodeB((n + 1)))
+        (UnicodeB(n), b) if is_hex(b) -> Continue(UnicodeC((n + 1)))
+        (UnicodeC(n), b) if is_hex(b) -> Continue(UnicodeD((n + 1)))
+        (UnicodeD(n), b) if is_hex(b) -> Continue(Chars((n + 1)))
+        _ -> Break(InvalidNumber)
 
 StringState : [
     Start,
@@ -1073,14 +1074,14 @@ StringState : [
     InvalidNumber,
 ]
 
-isEscapedChar : U8 -> Bool
-isEscapedChar = \b ->
+is_escaped_char : U8 -> Bool
+is_escaped_char = \b ->
     when b is
         '"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' -> Bool.true
         _ -> Bool.false
 
-escapedCharFromJson : U8 -> U8
-escapedCharFromJson = \b ->
+escaped_char_from_json : U8 -> U8
+escaped_char_from_json = \b ->
     when b is
         '"' -> 0x22 # U+0022 Quotation mark
         '\\' -> 0x5c # U+005c Reverse solidus
@@ -1092,19 +1093,19 @@ escapedCharFromJson = \b ->
         't' -> 0x09 # U+0009 Tab
         _ -> b
 
-expect escapedCharFromJson 'n' == '\n'
+expect escaped_char_from_json('n') == '\n'
 
-isHex : U8 -> Bool
-isHex = \b ->
+is_hex : U8 -> Bool
+is_hex = \b ->
     (b >= '0' && b <= '9')
     || (b >= 'a' && b <= 'f')
     || (b >= 'A' && b <= 'F')
 
-expect isHex '0' && isHex 'f' && isHex 'F' && isHex 'A' && isHex '9'
-expect !(isHex 'g' && isHex 'x' && isHex 'u' && isHex '\\' && isHex '-')
+expect is_hex('0') && is_hex('f') && is_hex('F') && is_hex('A') && is_hex('9')
+expect !(is_hex('g') && is_hex('x') && is_hex('u') && is_hex('\\') && is_hex('-'))
 
-jsonHexToDecimal : U8 -> U8
-jsonHexToDecimal = \b ->
+json_hex_to_decimal : U8 -> U8
+json_hex_to_decimal = \b ->
     if b >= '0' && b <= '9' then
         b - '0'
     else if b >= 'a' && b <= 'f' then
@@ -1112,307 +1113,308 @@ jsonHexToDecimal = \b ->
     else if b >= 'A' && b <= 'F' then
         b - 'A' + 10
     else
-        crash "got an invalid hex char"
+        crash("got an invalid hex char")
 
-expect jsonHexToDecimal '0' == 0
-expect jsonHexToDecimal '9' == 9
-expect jsonHexToDecimal 'a' == 10
-expect jsonHexToDecimal 'A' == 10
-expect jsonHexToDecimal 'f' == 15
-expect jsonHexToDecimal 'F' == 15
+expect json_hex_to_decimal('0') == 0
+expect json_hex_to_decimal('9') == 9
+expect json_hex_to_decimal('a') == 10
+expect json_hex_to_decimal('A') == 10
+expect json_hex_to_decimal('f') == 15
+expect json_hex_to_decimal('F') == 15
 
-decimalHexToByte : U8, U8 -> U8
-decimalHexToByte = \upper, lower ->
-    Num.bitwiseOr (Num.shiftLeftBy upper 4) lower
+decimal_hex_to_byte : U8, U8 -> U8
+decimal_hex_to_byte = \upper, lower ->
+    Num.bitwise_or(Num.shift_left_by(upper, 4), lower)
 
 expect
-    actual = decimalHexToByte 3 7
+    actual = decimal_hex_to_byte(3, 7)
     expected = '7'
     actual == expected
 
 expect
-    actual = decimalHexToByte 7 4
+    actual = decimal_hex_to_byte(7, 4)
     expected = 't'
     actual == expected
 
-hexToUtf8 : U8, U8, U8, U8 -> List U8
-hexToUtf8 = \a, b, c, d ->
-    i = jsonHexToDecimal a
-    j = jsonHexToDecimal b
-    k = jsonHexToDecimal c
-    l = jsonHexToDecimal d
+hex_to_utf8 : U8, U8, U8, U8 -> List U8
+hex_to_utf8 = \a, b, c, d ->
+    i = json_hex_to_decimal(a)
+    j = json_hex_to_decimal(b)
+    k = json_hex_to_decimal(c)
+    l = json_hex_to_decimal(d)
 
-    cp = (16 * 16 * 16 * Num.toU32 i) + (16 * 16 * Num.toU32 j) + (16 * Num.toU32 k) + Num.toU32 l
-    codepointToUtf8 cp
+    cp = (16 * 16 * 16 * Num.to_u32(i)) + (16 * 16 * Num.to_u32(j)) + (16 * Num.to_u32(k)) + Num.to_u32(l)
+    codepoint_to_utf8(cp)
 
 # Copied from https://github.com/roc-lang/unicode/blob/e1162d49e3a2c57ed711ecdee7dc8537a19479d8/
 # from package/CodePoint.roc and modified
-codepointToUtf8 : U32 -> List U8
-codepointToUtf8 = \u32 ->
+codepoint_to_utf8 : U32 -> List U8
+codepoint_to_utf8 = \u32 ->
     if u32 < 0x80 then
-        [Num.toU8 u32]
+        [Num.to_u8(u32)]
     else if u32 < 0x800 then
         byte1 =
             u32
-            |> Num.shiftRightBy 6
-            |> Num.bitwiseOr 0b11000000
-            |> Num.toU8
+            |> Num.shift_right_by(6)
+            |> Num.bitwise_or(0b11000000)
+            |> Num.to_u8
 
         byte2 =
             u32
-            |> Num.bitwiseAnd 0b111111
-            |> Num.bitwiseOr 0b10000000
-            |> Num.toU8
+            |> Num.bitwise_and(0b111111)
+            |> Num.bitwise_or(0b10000000)
+            |> Num.to_u8
 
         [byte1, byte2]
     else if u32 < 0x10000 then
         byte1 =
             u32
-            |> Num.shiftRightBy 12
-            |> Num.bitwiseOr 0b11100000
-            |> Num.toU8
+            |> Num.shift_right_by(12)
+            |> Num.bitwise_or(0b11100000)
+            |> Num.to_u8
 
         byte2 =
             u32
-            |> Num.shiftRightBy 6
-            |> Num.bitwiseAnd 0b111111
-            |> Num.bitwiseOr 0b10000000
-            |> Num.toU8
+            |> Num.shift_right_by(6)
+            |> Num.bitwise_and(0b111111)
+            |> Num.bitwise_or(0b10000000)
+            |> Num.to_u8
 
         byte3 =
             u32
-            |> Num.bitwiseAnd 0b111111
-            |> Num.bitwiseOr 0b10000000
-            |> Num.toU8
+            |> Num.bitwise_and(0b111111)
+            |> Num.bitwise_or(0b10000000)
+            |> Num.to_u8
 
         [byte1, byte2, byte3]
     else if u32 < 0x110000 then
         ## This was an invalid Unicode scalar value, even though it had the Roc type Scalar.
         ## This should never happen!
         # expect u32 < 0x110000
-        crash "Impossible"
+        crash("Impossible")
     else
         byte1 =
             u32
-            |> Num.shiftRightBy 18
-            |> Num.bitwiseOr 0b11110000
-            |> Num.toU8
+            |> Num.shift_right_by(18)
+            |> Num.bitwise_or(0b11110000)
+            |> Num.to_u8
 
         byte2 =
             u32
-            |> Num.shiftRightBy 12
-            |> Num.bitwiseAnd 0b111111
-            |> Num.bitwiseOr 0b10000000
-            |> Num.toU8
+            |> Num.shift_right_by(12)
+            |> Num.bitwise_and(0b111111)
+            |> Num.bitwise_or(0b10000000)
+            |> Num.to_u8
 
         byte3 =
             u32
-            |> Num.shiftRightBy 6
-            |> Num.bitwiseAnd 0b111111
-            |> Num.bitwiseOr 0b10000000
-            |> Num.toU8
+            |> Num.shift_right_by(6)
+            |> Num.bitwise_and(0b111111)
+            |> Num.bitwise_or(0b10000000)
+            |> Num.to_u8
 
         byte4 =
             u32
-            |> Num.bitwiseAnd 0b111111
-            |> Num.bitwiseOr 0b10000000
-            |> Num.toU8
+            |> Num.bitwise_and(0b111111)
+            |> Num.bitwise_or(0b10000000)
+            |> Num.to_u8
 
         [byte1, byte2, byte3, byte4]
 
 # Test for \u0074 == U+74 == 't' in Basic Multilingual Plane
 expect
-    actual = hexToUtf8 '0' '0' '7' '4'
+    actual = hex_to_utf8('0', '0', '7', '4')
     expected = ['t']
     actual == expected
 
 # Test for \u0068 == U+68 == 'h' in Basic Multilingual Plane
 expect
-    actual = hexToUtf8 '0' '0' '6' '8'
+    actual = hex_to_utf8('0', '0', '6', '8')
     expected = ['h']
     actual == expected
 
 # Test for \u2c64 == U+2C64 == 'Ɽ' in Latin Extended-C
 expect
-    actual = hexToUtf8 '2' 'C' '6' '4'
+    actual = hex_to_utf8('2', 'C', '6', '4')
     expected = [0xE2, 0xB1, 0xA4]
     actual == expected
 
-unicodeReplacement = [0xEF, 0xBF, 0xBD]
+unicode_replacement = [0xEF, 0xBF, 0xBD]
 
-replaceEscapedChars : { inBytes : List U8, outBytes : List U8 } -> { inBytes : List U8, outBytes : List U8 }
-replaceEscapedChars = \{ inBytes, outBytes } ->
+replace_escaped_chars : { in_bytes : List U8, out_bytes : List U8 } -> { in_bytes : List U8, out_bytes : List U8 }
+replace_escaped_chars = \{ in_bytes, out_bytes } ->
 
-    firstByte = List.get inBytes 0
-    secondByte = List.get inBytes 1
-    inBytesWithoutFirstTwo = List.dropFirst inBytes 2
-    inBytesWithoutFirstSix = List.dropFirst inBytes 6
+    first_byte = List.get(in_bytes, 0)
+    second_byte = List.get(in_bytes, 1)
+    in_bytes_without_first_two = List.drop_first(in_bytes, 2)
+    in_bytes_without_first_six = List.drop_first(in_bytes, 6)
 
-    when Pair firstByte secondByte is
-        Pair (Ok a) (Ok b) if a == '\\' && b == 'u' ->
+    when Pair(first_byte, second_byte) is
+        Pair(Ok(a), Ok(b)) if a == '\\' && b == 'u' ->
             # Extended json unicode escape
-            when inBytesWithoutFirstTwo is
+            when in_bytes_without_first_two is
                 [c, d, e, f, ..] ->
-                    utf8Bytes = hexToUtf8 c d e f
+                    utf8_bytes = hex_to_utf8(c, d, e, f)
 
-                    replaceEscapedChars {
-                        inBytes: inBytesWithoutFirstSix,
-                        outBytes: List.concat outBytes utf8Bytes,
-                    }
+                    replace_escaped_chars({
+                        in_bytes: in_bytes_without_first_six,
+                        out_bytes: List.concat(out_bytes, utf8_bytes),
+                    })
 
                 _ ->
                     # Invalid Unicode Escape
-                    replaceEscapedChars {
-                        inBytes: inBytesWithoutFirstTwo,
-                        outBytes: List.concat outBytes unicodeReplacement,
-                    }
+                    replace_escaped_chars({
+                        in_bytes: in_bytes_without_first_two,
+                        out_bytes: List.concat(out_bytes, unicode_replacement),
+                    })
 
-        Pair (Ok a) (Ok b) if a == '\\' && isEscapedChar b ->
+        Pair(Ok(a), Ok(b)) if a == '\\' && is_escaped_char(b) ->
             # Shorthand json unicode escape
-            replaceEscapedChars {
-                inBytes: inBytesWithoutFirstTwo,
-                outBytes: List.append outBytes (escapedCharFromJson b),
-            }
+            replace_escaped_chars({
+                in_bytes: in_bytes_without_first_two,
+                out_bytes: List.append(out_bytes, escaped_char_from_json(b)),
+            })
 
-        Pair (Ok a) _ ->
+        Pair(Ok(a), _) ->
             # Process next character
-            replaceEscapedChars {
-                inBytes: List.dropFirst inBytes 1,
-                outBytes: List.append outBytes a,
-            }
+            replace_escaped_chars({
+                in_bytes: List.drop_first(in_bytes, 1),
+                out_bytes: List.append(out_bytes, a),
+            })
 
         _ ->
-            { inBytes, outBytes }
+            { in_bytes, out_bytes }
 
 # Test replacement of both extended and shorthand unicode escapes
 expect
-    inBytes = Str.toUtf8 "\\\\\\u0074\\u0068\\u0065\\t\\u0071\\u0075\\u0069\\u0063\\u006b\\n"
-    actual = replaceEscapedChars { inBytes, outBytes: [] }
-    expected = { inBytes: [], outBytes: ['\\', 't', 'h', 'e', '\t', 'q', 'u', 'i', 'c', 'k', '\n'] }
+    in_bytes = Str.to_utf8("\\\\\\u0074\\u0068\\u0065\\t\\u0071\\u0075\\u0069\\u0063\\u006b\\n")
+    actual = replace_escaped_chars({ in_bytes, out_bytes: [] })
+    expected = { in_bytes: [], out_bytes: ['\\', 't', 'h', 'e', '\t', 'q', 'u', 'i', 'c', 'k', '\n'] }
 
     actual == expected
 
 # Test decode simple string
 expect
-    input = "\"hello\", " |> Str.toUtf8
-    actual = Decode.fromBytesPartial input utf8
-    expected = Ok "hello"
+    input = "\"hello\", " |> Str.to_utf8
+    actual = Decode.from_bytes_partial(input, utf8)
+    expected = Ok("hello")
 
     actual.result == expected
 
 # Test decode string with extended and shorthand json escapes
 expect
-    input = "\"h\\\"\\u0065llo\\n\"]\n" |> Str.toUtf8
-    actual = Decode.fromBytesPartial input utf8
-    expected = Ok "h\"ello\n"
+    input = "\"h\\\"\\u0065llo\\n\"]\n" |> Str.to_utf8
+    actual = Decode.from_bytes_partial(input, utf8)
+    expected = Ok("h\"ello\n")
 
     actual.result == expected
 
 # Test json string decoding with escapes
 expect
-    input = Str.toUtf8 "\"a\r\nbc\\txz\"\t\n,  "
-    actual = Decode.fromBytesPartial input utf8
-    expected = Ok "a\r\nbc\txz"
+    input = Str.to_utf8("\"a\r\nbc\\txz\"\t\n,  ")
+    actual = Decode.from_bytes_partial(input, utf8)
+    expected = Ok("a\r\nbc\txz")
 
     actual.result == expected
 
 # Test decode of a null
 expect
-    input = Str.toUtf8 "null"
+    input = Str.to_utf8("null")
 
     actual : DecodeResult Str
-    actual = Decode.fromBytesPartial input utf8
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    Result.isErr actual.result
+    Result.is_err(actual.result)
 
 # JSON ARRAYS ------------------------------------------------------------------
 
-decodeList = \elemDecoder -> Decode.custom \bytes, jsonFmt ->
+decode_list = \elem_decoder ->
+    Decode.custom(\bytes, json_fmt ->
 
-        decodeElems = arrayElemDecoder elemDecoder jsonFmt
+        decode_elems = array_elem_decoder(elem_decoder, json_fmt)
 
         result =
-            when List.walkUntil bytes (BeforeOpeningBracket 0) arrayOpeningHelp is
-                AfterOpeningBracket n -> Ok (List.dropFirst bytes n)
-                _ -> Err ExpectedOpeningBracket
+            when List.walk_until(bytes, BeforeOpeningBracket(0), array_opening_help) is
+                AfterOpeningBracket(n) -> Ok(List.drop_first(bytes, n))
+                _ -> Err(ExpectedOpeningBracket)
 
         when result is
-            Ok elemBytes -> decodeElems elemBytes []
-            Err ExpectedOpeningBracket -> { result: Err TooShort, rest: bytes }
+            Ok(elem_bytes) -> decode_elems(elem_bytes, [])
+            Err(ExpectedOpeningBracket) -> { result: Err(TooShort), rest: bytes })
 
-arrayElemDecoder = \elemDecoder, jsonFmt ->
+array_elem_decoder = \elem_decoder, json_fmt ->
 
-    decodeElems = \bytes, accum ->
+    decode_elems = \bytes, accum ->
 
         # Done't need a comma before the first element
         state =
-            if List.isEmpty accum then
-                BeforeNextElement 0
+            if List.is_empty(accum) then
+                BeforeNextElement(0)
             else
-                BeforeNextElemOrClosingBracket 0
+                BeforeNextElemOrClosingBracket(0)
 
-        when List.walkUntil bytes state arrayClosingHelp is
-            AfterClosingBracket n ->
+        when List.walk_until(bytes, state, array_closing_help) is
+            AfterClosingBracket(n) ->
                 # Eat remaining whitespace
-                rest = List.dropFirst bytes n
+                rest = List.drop_first(bytes, n)
 
                 # Return List of decoded elements
-                { result: Ok accum, rest }
+                { result: Ok(accum), rest }
 
-            BeforeNextElement n ->
+            BeforeNextElement(n) ->
                 # Eat any whitespace before element
-                elemBytes = List.dropFirst bytes n
+                elem_bytes = List.drop_first(bytes, n)
 
                 # Decode current element
-                { result, rest } = decodePotentialNull elemBytes elemDecoder jsonFmt
+                { result, rest } = decode_potential_null(elem_bytes, elem_decoder, json_fmt)
 
                 when result is
-                    Ok elem ->
+                    Ok(elem) ->
                         # Accumulate decoded value and walk to next element
                         # or the end of the list
-                        decodeElems rest (List.append accum elem)
+                        decode_elems(rest, List.append(accum, elem))
 
-                    Err _ ->
+                    Err(_) ->
                         # Unable to decode next element
-                        { result: Err TooShort, rest }
+                        { result: Err(TooShort), rest }
 
-            BeforeNextElemOrClosingBracket _ ->
-                if List.isEmpty accum then
+            BeforeNextElemOrClosingBracket(_) ->
+                if List.is_empty(accum) then
                     # Handle empty lists
-                    { result: Ok [], rest: bytes }
+                    { result: Ok([]), rest: bytes }
                 else
                     # Expected comma or closing bracket after last element
-                    { result: Err TooShort, rest: bytes }
+                    { result: Err(TooShort), rest: bytes }
 
-    decodeElems
+    decode_elems
 
-arrayOpeningHelp : ArrayOpeningState, U8 -> [Continue ArrayOpeningState, Break ArrayOpeningState]
-arrayOpeningHelp = \state, byte ->
+array_opening_help : ArrayOpeningState, U8 -> [Continue ArrayOpeningState, Break ArrayOpeningState]
+array_opening_help = \state, byte ->
     when (state, byte) is
-        (BeforeOpeningBracket n, b) if isWhitespace b -> Continue (BeforeOpeningBracket (n + 1))
-        (BeforeOpeningBracket n, b) if b == '[' -> Continue (AfterOpeningBracket (n + 1))
-        (AfterOpeningBracket n, b) if isWhitespace b -> Continue (AfterOpeningBracket (n + 1))
-        _ -> Break state
+        (BeforeOpeningBracket(n), b) if is_whitespace(b) -> Continue(BeforeOpeningBracket((n + 1)))
+        (BeforeOpeningBracket(n), b) if b == '[' -> Continue(AfterOpeningBracket((n + 1)))
+        (AfterOpeningBracket(n), b) if is_whitespace(b) -> Continue(AfterOpeningBracket((n + 1)))
+        _ -> Break(state)
 
-arrayClosingHelp : ArrayClosingState, U8 -> [Continue ArrayClosingState, Break ArrayClosingState]
-arrayClosingHelp = \state, byte ->
+array_closing_help : ArrayClosingState, U8 -> [Continue ArrayClosingState, Break ArrayClosingState]
+array_closing_help = \state, byte ->
     when (state, byte) is
-        (BeforeNextElemOrClosingBracket n, b) if isWhitespace b -> Continue (BeforeNextElemOrClosingBracket (n + 1))
-        (BeforeNextElemOrClosingBracket n, b) if b == ',' -> Continue (BeforeNextElement (n + 1))
-        (BeforeNextElemOrClosingBracket n, b) if b == ']' -> Continue (AfterClosingBracket (n + 1))
-        (BeforeNextElement n, b) if isWhitespace b -> Continue (BeforeNextElement (n + 1))
-        (BeforeNextElement n, b) if b == ']' -> Continue (AfterClosingBracket (n + 1))
-        (AfterClosingBracket n, b) if isWhitespace b -> Continue (AfterClosingBracket (n + 1))
-        _ -> Break state
+        (BeforeNextElemOrClosingBracket(n), b) if is_whitespace(b) -> Continue(BeforeNextElemOrClosingBracket((n + 1)))
+        (BeforeNextElemOrClosingBracket(n), b) if b == ',' -> Continue(BeforeNextElement((n + 1)))
+        (BeforeNextElemOrClosingBracket(n), b) if b == ']' -> Continue(AfterClosingBracket((n + 1)))
+        (BeforeNextElement(n), b) if is_whitespace(b) -> Continue(BeforeNextElement((n + 1)))
+        (BeforeNextElement(n), b) if b == ']' -> Continue(AfterClosingBracket((n + 1)))
+        (AfterClosingBracket(n), b) if is_whitespace(b) -> Continue(AfterClosingBracket((n + 1)))
+        _ -> Break(state)
 
-isWhitespace = \b ->
+is_whitespace = \b ->
     when b is
         ' ' | '\n' | '\r' | '\t' -> Bool.true
         _ -> Bool.false
 
 expect
     input = ['1', 'a', ' ', '\n', 0x0d, 0x09]
-    actual = List.map input isWhitespace
+    actual = List.map(input, is_whitespace)
     expected = [Bool.false, Bool.false, Bool.true, Bool.true, Bool.true, Bool.true]
 
     actual == expected
@@ -1430,185 +1432,186 @@ ArrayClosingState : [
 
 # Test decoding an empty array
 expect
-    input = Str.toUtf8 "[ ]"
+    input = Str.to_utf8("[ ]")
 
     actual : DecodeResult (List U8)
-    actual = Decode.fromBytesPartial input utf8
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    actual.result == Ok []
+    actual.result == Ok([])
 
 # Test decode array of json numbers with whitespace
 expect
-    input = Str.toUtf8 "\n[\t 1 , 2  , 3]"
+    input = Str.to_utf8("\n[\t 1 , 2  , 3]")
 
     actual : DecodeResult (List U64)
-    actual = Decode.fromBytesPartial input utf8
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok [1, 2, 3]
+    expected = Ok([1, 2, 3])
 
     actual.result == expected
 
 # Test decode array of json strings ignoring whitespace
 expect
-    input = Str.toUtf8 "\n\t [\n \"one\"\r , \"two\" , \n\"3\"\t]"
+    input = Str.to_utf8("\n\t [\n \"one\"\r , \"two\" , \n\"3\"\t]")
 
     actual : DecodeResult (List Str)
-    actual = Decode.fromBytesPartial input utf8
-    expected = Ok ["one", "two", "3"]
+    actual = Decode.from_bytes_partial(input, utf8)
+    expected = Ok(["one", "two", "3"])
 
     actual.result == expected
 
 # Test decode array of object field name mapping
 expect
-    input = Str.toUtf8 "[{\"field_name\":1}]"
+    input = Str.to_utf8("[{\"field_name\":1}]")
 
-    decoder = utf8With { fieldNameMapping: SnakeCase }
+    decoder = utf8_with({ field_name_mapping: SnakeCase })
 
-    actual : DecodeResult (List { fieldName : U64 })
-    actual = Decode.fromBytesPartial input decoder
+    actual : DecodeResult (List { field_name : U64 })
+    actual = Decode.from_bytes_partial(input, decoder)
 
-    expected = Ok [{ fieldName: 1 }]
+    expected = Ok([{ field_name: 1 }])
 
     actual.result == expected
 
 # Test decode array of object not skipping missing properties
 expect
-    input = Str.toUtf8 "[{\"extraField\":2,\"fieldName\":1}]"
+    input = Str.to_utf8("[{\"extraField\":2,\"fieldName\":1}]")
 
-    decoder = utf8With { skipMissingProperties: Bool.false }
+    decoder = utf8_with({ skip_missing_properties: Bool.false })
 
-    actual : DecodeResult (List { fieldName : U64 })
-    actual = Decode.fromBytesPartial input decoder
+    actual : DecodeResult (List { field_name : U64 })
+    actual = Decode.from_bytes_partial(input, decoder)
 
-    expected = Err TooShort
+    expected = Err(TooShort)
 
     actual.result == expected
 
 # JSON OBJECTS -----------------------------------------------------------------
 
-decodeRecord = \initialState, stepField, finalizer -> Decode.custom \bytes, @Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull } ->
+decode_record = \initial_state, step_field, finalizer ->
+    Decode.custom(\bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
 
         # Recursively build up record from object field:value pairs
-        decodeFields = \recordState, bytesBeforeField ->
+        decode_fields = \record_state, bytes_before_field ->
 
             # Decode the JSON string field name
-            { result: objectNameResult, rest: bytesAfterField } =
-                Decode.decodeWith bytesBeforeField decodeString utf8
+            { result: object_name_result, rest: bytes_after_field } =
+                Decode.decode_with(bytes_before_field, decode_string, utf8)
 
             # Count the bytes until the field value
-            countBytesBeforeValue =
-                when List.walkUntil bytesAfterField (BeforeColon 0) objectHelp is
-                    AfterColon n -> n
+            count_bytes_before_value =
+                when List.walk_until(bytes_after_field, BeforeColon(0), object_help) is
+                    AfterColon(n) -> n
                     _ -> 0
 
-            valueBytes = List.dropFirst bytesAfterField countBytesBeforeValue
+            value_bytes = List.drop_first(bytes_after_field, count_bytes_before_value)
 
-            when objectNameResult is
-                Err TooShort ->
+            when object_name_result is
+                Err(TooShort) ->
                     # Invalid object, unable to decode field name or find colon ':'
                     # after field and before the value
-                    { result: Err TooShort, rest: bytes }
+                    { result: Err(TooShort), rest: bytes }
 
-                Ok objectName ->
-                    decodeAttempt =
-                        fieldName =
-                            fromObjectNameUsingMap objectName fieldNameMapping
+                Ok(object_name) ->
+                    decode_attempt =
+                        field_name =
+                            from_object_name_using_map(object_name, field_name_mapping)
 
                         # Retrieve value decoder for the current field
-                        when (stepField recordState fieldName, skipMissingProperties) is
-                            (Skip, shouldSkip) if shouldSkip == Bool.true ->
+                        when (step_field(record_state, field_name), skip_missing_properties) is
+                            (Skip, should_skip) if should_skip == Bool.true ->
                                 # Count the bytes until the field value
-                                countBytesBeforeNextField =
-                                    when List.walkUntil valueBytes (FieldValue 0) skipFieldHelp is
-                                        FieldValueEnd n -> n
+                                count_bytes_before_next_field =
+                                    when List.walk_until(value_bytes, FieldValue(0), skip_field_help) is
+                                        FieldValueEnd(n) -> n
                                         _ -> 0
 
-                                dropedValueBytes = List.dropFirst valueBytes countBytesBeforeNextField
+                                droped_value_bytes = List.drop_first(value_bytes, count_bytes_before_next_field)
 
-                                { result: Ok recordState, rest: dropedValueBytes }
+                                { result: Ok(record_state), rest: droped_value_bytes }
 
                             (Skip, _) ->
-                                { result: Ok recordState, rest: valueBytes }
+                                { result: Ok(record_state), rest: value_bytes }
 
-                            (Keep valueDecoder, _) ->
+                            (Keep(value_decoder), _) ->
                                 # Decode the value using the decoder from the recordState
-                                decodePotentialNull valueBytes valueDecoder (@Json { fieldNameMapping, skipMissingProperties, nullDecodeAsEmpty, emptyEncodeAsNull })
+                                decode_potential_null(value_bytes, value_decoder, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }))
 
                     # Decode the json value
-                    tryDecode decodeAttempt \{ val: updatedRecord, rest: bytesAfterValue } ->
+                    try_decode(decode_attempt, \{ val: updated_record, rest: bytes_after_value } ->
                         # Check if another field or '}' for end of object
-                        when List.walkUntil bytesAfterValue (AfterObjectValue 0) objectHelp is
-                            ObjectFieldNameStart n ->
-                                rest = List.dropFirst bytesAfterValue n
+                        when List.walk_until(bytes_after_value, AfterObjectValue(0), object_help) is
+                            ObjectFieldNameStart(n) ->
+                                rest = List.drop_first(bytes_after_value, n)
 
                                 # Decode the next field and value
-                                decodeFields updatedRecord rest
+                                decode_fields(updated_record, rest)
 
-                            AfterClosingBrace n ->
-                                rest = List.dropFirst bytesAfterValue n
+                            AfterClosingBrace(n) ->
+                                rest = List.drop_first(bytes_after_value, n)
 
                                 # Build final record from decoded fields and values
-                                when finalizer updatedRecord utf8 is
+                                when finalizer(updated_record, utf8) is
                                     ## This step is where i can implement my special decoding of options
-                                    Ok val -> { result: Ok val, rest }
-                                    Err e ->
-                                        { result: Err e, rest }
+                                    Ok(val) -> { result: Ok(val), rest }
+                                    Err(e) ->
+                                        { result: Err(e), rest }
 
                             _ ->
                                 # Invalid object
-                                { result: Err TooShort, rest: bytesAfterValue }
+                                { result: Err(TooShort), rest: bytes_after_value })
 
-        countBytesBeforeFirstField =
-            when List.walkUntil bytes (BeforeOpeningBrace 0) objectHelp is
-                ObjectFieldNameStart n -> n
+        count_bytes_before_first_field =
+            when List.walk_until(bytes, BeforeOpeningBrace(0), object_help) is
+                ObjectFieldNameStart(n) -> n
                 _ -> 0
 
-        if countBytesBeforeFirstField == 0 then
+        if count_bytes_before_first_field == 0 then
             # Invalid object, expected opening brace '{' followed by a field
-            { result: Err TooShort, rest: bytes }
+            { result: Err(TooShort), rest: bytes }
         else
-            bytesBeforeFirstField = List.dropFirst bytes countBytesBeforeFirstField
+            bytes_before_first_field = List.drop_first(bytes, count_bytes_before_first_field)
 
             # Begin decoding field:value pairs
-            decodeFields initialState bytesBeforeFirstField
+            decode_fields(initial_state, bytes_before_first_field))
 
-skipFieldHelp : SkipValueState, U8 -> [Break SkipValueState, Continue SkipValueState]
-skipFieldHelp = \state, byte ->
+skip_field_help : SkipValueState, U8 -> [Break SkipValueState, Continue SkipValueState]
+skip_field_help = \state, byte ->
     when (state, byte) is
-        (FieldValue n, b) if b == '}' -> Break (FieldValueEnd n)
-        (FieldValue n, b) if b == '[' -> Continue (InsideAnArray { index: (n + 1), nesting: 0 })
-        (FieldValue n, b) if b == '{' -> Continue (InsideAnObject { index: (n + 1), nesting: 0 })
-        (FieldValue n, b) if b == '"' -> Continue (InsideAString (n + 1))
-        (FieldValue n, b) if b == ',' -> Break (FieldValueEnd (n))
-        (FieldValue n, _) -> Continue (FieldValue (n + 1))
+        (FieldValue(n), b) if b == '}' -> Break(FieldValueEnd(n))
+        (FieldValue(n), b) if b == '[' -> Continue(InsideAnArray({ index: (n + 1), nesting: 0 }))
+        (FieldValue(n), b) if b == '{' -> Continue(InsideAnObject({ index: (n + 1), nesting: 0 }))
+        (FieldValue(n), b) if b == '"' -> Continue(InsideAString((n + 1)))
+        (FieldValue(n), b) if b == ',' -> Break(FieldValueEnd(n))
+        (FieldValue(n), _) -> Continue(FieldValue((n + 1)))
         # strings
-        (InsideAString n, b) if b == '\\' -> Continue (Escaped (n + 1))
-        (Escaped n, _) -> Continue (InsideAString (n + 1))
-        (InsideAString n, b) if b == '"' -> Continue (FieldValue (n + 1))
-        (InsideAString n, _) -> Continue (InsideAString (n + 1))
+        (InsideAString(n), b) if b == '\\' -> Continue(Escaped((n + 1)))
+        (Escaped(n), _) -> Continue(InsideAString((n + 1)))
+        (InsideAString(n), b) if b == '"' -> Continue(FieldValue((n + 1)))
+        (InsideAString(n), _) -> Continue(InsideAString((n + 1)))
         # arrays
-        (InsideAnArray { index, nesting }, b) if b == '"' -> Continue (StringInArray { index: index + 1, nesting })
-        (InsideAnArray { index, nesting }, b) if b == '[' -> Continue (InsideAnArray { index: index + 1, nesting: nesting + 1 })
-        (InsideAnArray { index, nesting }, b) if nesting == 0 && b == ']' -> Continue (FieldValue (index + 1))
-        (InsideAnArray { index, nesting }, b) if b == ']' -> Continue (InsideAnArray { index: index + 1, nesting: nesting - 1 })
-        (InsideAnArray { index, nesting }, _) -> Continue (InsideAnArray { index: index + 1, nesting })
+        (InsideAnArray({ index, nesting }), b) if b == '"' -> Continue(StringInArray({ index: index + 1, nesting }))
+        (InsideAnArray({ index, nesting }), b) if b == '[' -> Continue(InsideAnArray({ index: index + 1, nesting: nesting + 1 }))
+        (InsideAnArray({ index, nesting }), b) if nesting == 0 && b == ']' -> Continue(FieldValue((index + 1)))
+        (InsideAnArray({ index, nesting }), b) if b == ']' -> Continue(InsideAnArray({ index: index + 1, nesting: nesting - 1 }))
+        (InsideAnArray({ index, nesting }), _) -> Continue(InsideAnArray({ index: index + 1, nesting }))
         # arrays escape strings
-        (StringInArray { index, nesting }, b) if b == '\\' -> Continue (EcapdedStringInArray { index: index + 1, nesting })
-        (EcapdedStringInArray { index, nesting }, _) -> Continue (StringInArray { index: index + 1, nesting })
-        (StringInArray { index, nesting }, b) if b == '"' -> Continue (InsideAnArray { index: index + 1, nesting })
-        (StringInArray { index, nesting }, _) -> Continue (StringInArray { index: index + 1, nesting })
+        (StringInArray({ index, nesting }), b) if b == '\\' -> Continue(EcapdedStringInArray({ index: index + 1, nesting }))
+        (EcapdedStringInArray({ index, nesting }), _) -> Continue(StringInArray({ index: index + 1, nesting }))
+        (StringInArray({ index, nesting }), b) if b == '"' -> Continue(InsideAnArray({ index: index + 1, nesting }))
+        (StringInArray({ index, nesting }), _) -> Continue(StringInArray({ index: index + 1, nesting }))
         # objects
-        (InsideAnObject { index, nesting }, b) if b == '"' -> Continue (StringInObject { index: index + 1, nesting })
-        (InsideAnObject { index, nesting }, b) if b == '{' -> Continue (InsideAnObject { index: index + 1, nesting: nesting + 1 })
-        (InsideAnObject { index, nesting }, b) if nesting == 0 && b == '}' -> Continue (FieldValue (index + 1))
-        (InsideAnObject { index, nesting }, b) if b == '}' -> Continue (InsideAnObject { index: index + 1, nesting: nesting - 1 })
-        (InsideAnObject { index, nesting }, _) -> Continue (InsideAnObject { index: index + 1, nesting })
+        (InsideAnObject({ index, nesting }), b) if b == '"' -> Continue(StringInObject({ index: index + 1, nesting }))
+        (InsideAnObject({ index, nesting }), b) if b == '{' -> Continue(InsideAnObject({ index: index + 1, nesting: nesting + 1 }))
+        (InsideAnObject({ index, nesting }), b) if nesting == 0 && b == '}' -> Continue(FieldValue((index + 1)))
+        (InsideAnObject({ index, nesting }), b) if b == '}' -> Continue(InsideAnObject({ index: index + 1, nesting: nesting - 1 }))
+        (InsideAnObject({ index, nesting }), _) -> Continue(InsideAnObject({ index: index + 1, nesting }))
         # objects escape strings
-        (StringInObject { index, nesting }, b) if b == '\\' -> Continue (EncodedStringInObject { index: index + 1, nesting })
-        (EncodedStringInObject { index, nesting }, _) -> Continue (StringInObject { index: index + 1, nesting })
-        (StringInObject { index, nesting }, b) if b == '"' -> Continue (InsideAnObject { index: index + 1, nesting })
-        (StringInObject { index, nesting }, _) -> Continue (StringInObject { index: index + 1, nesting })
-        _ -> Break InvalidObject
+        (StringInObject({ index, nesting }), b) if b == '\\' -> Continue(EncodedStringInObject({ index: index + 1, nesting }))
+        (EncodedStringInObject({ index, nesting }), _) -> Continue(StringInObject({ index: index + 1, nesting }))
+        (StringInObject({ index, nesting }), b) if b == '"' -> Continue(InsideAnObject({ index: index + 1, nesting }))
+        (StringInObject({ index, nesting }), _) -> Continue(StringInObject({ index: index + 1, nesting }))
+        _ -> Break(InvalidObject)
 
 SkipValueState : [
     FieldValue U64,
@@ -1626,199 +1629,199 @@ SkipValueState : [
 
 # Test decode of partial record
 expect
-    input = Str.toUtf8 "{\"extraField\":2, \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\":2, \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record in list additional field last
 expect
-    input = Str.toUtf8 "[{\"ownerName\": \"Farmer Joe\", \"extraField\":2}]"
-    actual : DecodeResult (List { ownerName : Str })
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("[{\"ownerName\": \"Farmer Joe\", \"extraField\":2}]")
+    actual : DecodeResult (List { owner_name : Str })
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok [{ ownerName: "Farmer Joe" }]
+    expected = Ok([{ owner_name: "Farmer Joe" }])
 
     result = actual.result
     result == expected
 
 # Test decode of partial record in record partial field last
 expect
-    input = Str.toUtf8 "{\"value\": {\"ownerName\": \"Farmer Joe\",\"extraField\":2}}"
-    actual : DecodeResult { value : { ownerName : Str } }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"value\": {\"ownerName\": \"Farmer Joe\",\"extraField\":2}}")
+    actual : DecodeResult { value : { owner_name : Str } }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { value: { ownerName: "Farmer Joe" } }
+    expected = Ok({ value: { owner_name: "Farmer Joe" } })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record in partial record additional fields last
 expect
-    input = Str.toUtf8 "{\"value\": {\"ownerName\": \"Farmer Joe\", \"extraField\":2}, \"extraField\":2}"
-    actual : DecodeResult { value : { ownerName : Str } }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"value\": {\"ownerName\": \"Farmer Joe\", \"extraField\":2}, \"extraField\":2}")
+    actual : DecodeResult { value : { owner_name : Str } }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { value: { ownerName: "Farmer Joe" } }
+    expected = Ok({ value: { owner_name: "Farmer Joe" } })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with multiple additional fields
 expect
-    input = Str.toUtf8 "{\"extraField\":2, \"ownerName\": \"Farmer Joe\", \"extraField2\":2 }"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\":2, \"ownerName\": \"Farmer Joe\", \"extraField2\":2 }")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with string value
 expect
-    input = Str.toUtf8 "{\"extraField\": \"abc\", \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": \"abc\", \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with string value with a comma
 expect
-    input = Str.toUtf8 "{\"extraField\": \"a,bc\", \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": \"a,bc\", \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with string value with an escaped "
 expect
-    input = Str.toUtf8 "{\"extraField\": \"a\\\"bc\", \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": \"a\\\"bc\", \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with an array
 expect
-    input = Str.toUtf8 "{\"extraField\": [1,2,3], \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": [1,2,3], \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with a nested array
 expect
-    input = Str.toUtf8 "{\"extraField\": [1,[4,5,[[9],6,7]],3], \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": [1,[4,5,[[9],6,7]],3], \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with a nested array with strings inside
 expect
-    input = Str.toUtf8 "{\"extraField\": [\"a\", [\"bc]]]def\"]], \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": [\"a\", [\"bc]]]def\"]], \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with a nested array with escaped strings inside
 expect
-    input = Str.toUtf8 "{\"extraField\": [\"a\", [\"b\\cdef\"]], \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": [\"a\", [\"b\\cdef\"]], \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with an object
 expect
-    input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6 }, \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6 }, \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with a nested object
 expect
-    input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"abcd\" } }, \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"abcd\" } }, \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with a nested object and string
 expect
-    input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab}}}}}cd\" } }, \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab}}}}}cd\" } }, \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
 # Test decode of partial record with a nested object and string ending with an escaped char
 expect
-    input = Str.toUtf8 "{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab\\cd\" } }, \"ownerName\": \"Farmer Joe\"}"
-    actual : DecodeResult { ownerName : Str }
-    actual = Decode.fromBytesPartial input utf8
+    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab\\cd\" } }, \"ownerName\": \"Farmer Joe\"}")
+    actual : DecodeResult { owner_name : Str }
+    actual = Decode.from_bytes_partial(input, utf8)
 
-    expected = Ok { ownerName: "Farmer Joe" }
+    expected = Ok({ owner_name: "Farmer Joe" })
 
     result = actual.result
     result == expected
 
-objectHelp : ObjectState, U8 -> [Break ObjectState, Continue ObjectState]
-objectHelp = \state, byte ->
+object_help : ObjectState, U8 -> [Break ObjectState, Continue ObjectState]
+object_help = \state, byte ->
     when (state, byte) is
-        (BeforeOpeningBrace n, b) if isWhitespace b -> Continue (BeforeOpeningBrace (n + 1))
-        (BeforeOpeningBrace n, b) if b == '{' -> Continue (AfterOpeningBrace (n + 1))
-        (AfterOpeningBrace n, b) if isWhitespace b -> Continue (AfterOpeningBrace (n + 1))
-        (AfterOpeningBrace n, b) if b == '"' -> Break (ObjectFieldNameStart n)
-        (BeforeColon n, b) if isWhitespace b -> Continue (BeforeColon (n + 1))
-        (BeforeColon n, b) if b == ':' -> Continue (AfterColon (n + 1))
-        (AfterColon n, b) if isWhitespace b -> Continue (AfterColon (n + 1))
-        (AfterColon n, _) -> Break (AfterColon n)
-        (AfterObjectValue n, b) if isWhitespace b -> Continue (AfterObjectValue (n + 1))
-        (AfterObjectValue n, b) if b == ',' -> Continue (AfterComma (n + 1))
-        (AfterObjectValue n, b) if b == '}' -> Continue (AfterClosingBrace (n + 1))
-        (AfterComma n, b) if isWhitespace b -> Continue (AfterComma (n + 1))
-        (AfterComma n, b) if b == '"' -> Break (ObjectFieldNameStart n)
-        (AfterClosingBrace n, b) if isWhitespace b -> Continue (AfterClosingBrace (n + 1))
-        (AfterClosingBrace n, _) -> Break (AfterClosingBrace n)
-        _ -> Break InvalidObject
+        (BeforeOpeningBrace(n), b) if is_whitespace(b) -> Continue(BeforeOpeningBrace((n + 1)))
+        (BeforeOpeningBrace(n), b) if b == '{' -> Continue(AfterOpeningBrace((n + 1)))
+        (AfterOpeningBrace(n), b) if is_whitespace(b) -> Continue(AfterOpeningBrace((n + 1)))
+        (AfterOpeningBrace(n), b) if b == '"' -> Break(ObjectFieldNameStart(n))
+        (BeforeColon(n), b) if is_whitespace(b) -> Continue(BeforeColon((n + 1)))
+        (BeforeColon(n), b) if b == ':' -> Continue(AfterColon((n + 1)))
+        (AfterColon(n), b) if is_whitespace(b) -> Continue(AfterColon((n + 1)))
+        (AfterColon(n), _) -> Break(AfterColon(n))
+        (AfterObjectValue(n), b) if is_whitespace(b) -> Continue(AfterObjectValue((n + 1)))
+        (AfterObjectValue(n), b) if b == ',' -> Continue(AfterComma((n + 1)))
+        (AfterObjectValue(n), b) if b == '}' -> Continue(AfterClosingBrace((n + 1)))
+        (AfterComma(n), b) if is_whitespace(b) -> Continue(AfterComma((n + 1)))
+        (AfterComma(n), b) if b == '"' -> Break(ObjectFieldNameStart(n))
+        (AfterClosingBrace(n), b) if is_whitespace(b) -> Continue(AfterClosingBrace((n + 1)))
+        (AfterClosingBrace(n), _) -> Break(AfterClosingBrace(n))
+        _ -> Break(InvalidObject)
 
 ObjectState : [
     BeforeOpeningBrace U64,
@@ -1834,51 +1837,51 @@ ObjectState : [
 
 # Test decode of record with two strings ignoring whitespace
 expect
-    input = Str.toUtf8 " {\n\"FruitCount\"\t:2\n, \"OwnerName\": \"Farmer Joe\" } "
-    decoder = utf8With { fieldNameMapping: PascalCase }
-    actual = Decode.fromBytesPartial input decoder
-    expected = Ok { fruitCount: 2, ownerName: "Farmer Joe" }
+    input = Str.to_utf8(" {\n\"FruitCount\"\t:2\n, \"OwnerName\": \"Farmer Joe\" } ")
+    decoder = utf8_with({ field_name_mapping: PascalCase })
+    actual = Decode.from_bytes_partial(input, decoder)
+    expected = Ok({ fruit_count: 2, owner_name: "Farmer Joe" })
 
     actual.result == expected
 
 # Test decode of record with an array of strings and a boolean field
 expect
-    input = Str.toUtf8 "{\"fruit-flavours\": [\"Apples\",\"Bananas\",\"Pears\"], \"is-fresh\": true }"
-    decoder = utf8With { fieldNameMapping: KebabCase }
-    actual = Decode.fromBytesPartial input decoder
-    expected = Ok { fruitFlavours: ["Apples", "Bananas", "Pears"], isFresh: Bool.true }
+    input = Str.to_utf8("{\"fruit-flavours\": [\"Apples\",\"Bananas\",\"Pears\"], \"is-fresh\": true }")
+    decoder = utf8_with({ field_name_mapping: KebabCase })
+    actual = Decode.from_bytes_partial(input, decoder)
+    expected = Ok({ fruit_flavours: ["Apples", "Bananas", "Pears"], is_fresh: Bool.true })
 
     actual.result == expected
 
 # Test decode of record with a string and number field
 expect
-    input = Str.toUtf8 "{\"first_segment\":\"ab\",\"second_segment\":10}"
-    decoder = utf8With { fieldNameMapping: SnakeCase }
-    actual = Decode.fromBytesPartial input decoder
-    expected = Ok { firstSegment: "ab", secondSegment: 10u8 }
+    input = Str.to_utf8("{\"first_segment\":\"ab\",\"second_segment\":10}")
+    decoder = utf8_with({ field_name_mapping: SnakeCase })
+    actual = Decode.from_bytes_partial(input, decoder)
+    expected = Ok({ first_segment: "ab", second_segment: 10u8 })
 
     actual.result == expected
 
 # Test decode of record of a record
 expect
-    input = Str.toUtf8 "{\"OUTER\":{\"INNER\":\"a\"},\"OTHER\":{\"ONE\":\"b\",\"TWO\":10}}"
-    decoder = utf8With { fieldNameMapping: Custom fromYellingCase }
-    actual = Decode.fromBytesPartial input decoder
-    expected = Ok { outer: { inner: "a" }, other: { one: "b", two: 10u8 } }
+    input = Str.to_utf8("{\"OUTER\":{\"INNER\":\"a\"},\"OTHER\":{\"ONE\":\"b\",\"TWO\":10}}")
+    decoder = utf8_with({ field_name_mapping: Custom(from_yelling_case) })
+    actual = Decode.from_bytes_partial(input, decoder)
+    expected = Ok({ outer: { inner: "a" }, other: { one: "b", two: 10u8 } })
 
     actual.result == expected
 
-fromYellingCase = \str ->
-    Str.toUtf8 str
-    |> List.map toLowercase
-    |> Str.fromUtf8
-    |> crashOnBadUtf8Error
+from_yelling_case = \str ->
+    Str.to_utf8(str)
+    |> List.map(to_lowercase)
+    |> Str.from_utf8
+    |> crash_on_bad_utf8_error
 
-expect fromYellingCase "YELLING" == "yelling"
+expect from_yelling_case("YELLING") == "yelling"
 
 # Complex example from IETF RFC 8259 (2017)
-complexExampleJson = Str.toUtf8 "{\"Image\":{\"Animated\":false,\"Height\":600,\"Ids\":[116,943,234,38793],\"Thumbnail\":{\"Height\":125,\"Url\":\"http:\\/\\/www.example.com\\/image\\/481989943\",\"Width\":100},\"Title\":\"View from 15th Floor\",\"Width\":800}}"
-complexExampleRecord = {
+complex_example_json = Str.to_utf8("{\"Image\":{\"Animated\":false,\"Height\":600,\"Ids\":[116,943,234,38793],\"Thumbnail\":{\"Height\":125,\"Url\":\"http:\\/\\/www.example.com\\/image\\/481989943\",\"Width\":100},\"Title\":\"View from 15th Floor\",\"Width\":800}}")
+complex_example_record = {
     image: {
         width: 800,
         height: 600,
@@ -1895,257 +1898,257 @@ complexExampleRecord = {
 
 # Test decode of Complex Example
 expect
-    input = complexExampleJson
-    decoder = utf8With { fieldNameMapping: PascalCase }
-    actual = Decode.fromBytes input decoder
-    expected = Ok complexExampleRecord
+    input = complex_example_json
+    decoder = utf8_with({ field_name_mapping: PascalCase })
+    actual = Decode.from_bytes(input, decoder)
+    expected = Ok(complex_example_record)
 
     actual == expected
 
 # Test encode of Complex Example
 expect
-    input = complexExampleRecord
-    encoder = utf8With { fieldNameMapping: PascalCase }
-    actual = Encode.toBytes input encoder
-    expected = complexExampleJson
+    input = complex_example_record
+    encoder = utf8_with({ field_name_mapping: PascalCase })
+    actual = Encode.to_bytes(input, encoder)
+    expected = complex_example_json
 
     actual == expected
 
-fromObjectNameUsingMap : Str, FieldNameMapping -> Str
-fromObjectNameUsingMap = \objectName, fieldNameMapping ->
-    when fieldNameMapping is
-        Default -> objectName
-        SnakeCase -> fromSnakeCase objectName
-        PascalCase -> fromPascalCase objectName
-        KebabCase -> fromKebabCase objectName
-        CamelCase -> fromCamelCase objectName
-        Custom transformation -> transformation objectName
+from_object_name_using_map : Str, FieldNameMapping -> Str
+from_object_name_using_map = \object_name, field_name_mapping ->
+    when field_name_mapping is
+        Default -> object_name
+        SnakeCase -> from_snake_case(object_name)
+        PascalCase -> from_pascal_case(object_name)
+        KebabCase -> from_kebab_case(object_name)
+        CamelCase -> from_camel_case(object_name)
+        Custom(transformation) -> transformation(object_name)
 
-toObjectNameUsingMap : Str, FieldNameMapping -> Str
-toObjectNameUsingMap = \fieldName, fieldNameMapping ->
-    when fieldNameMapping is
-        Default -> fieldName
-        SnakeCase -> toSnakeCase fieldName
-        PascalCase -> toPascalCase fieldName
-        KebabCase -> toKebabCase fieldName
-        CamelCase -> toCamelCase fieldName
-        Custom transformation -> transformation fieldName
+to_object_name_using_map : Str, FieldNameMapping -> Str
+to_object_name_using_map = \field_name, field_name_mapping ->
+    when field_name_mapping is
+        Default -> field_name
+        SnakeCase -> to_snake_case(field_name)
+        PascalCase -> to_pascal_case(field_name)
+        KebabCase -> to_kebab_case(field_name)
+        CamelCase -> to_camel_case(field_name)
+        Custom(transformation) -> transformation(field_name)
 
 # Convert a `snake_case` JSON Object name to a Roc Field name
-fromSnakeCase = \str ->
-    snakeToCamel str
+from_snake_case = \str ->
+    snake_to_camel(str)
 
 # Convert a `PascalCase` JSON Object name to a Roc Field name
-fromPascalCase = \str ->
-    pascalToCamel str
+from_pascal_case = \str ->
+    pascal_to_camel(str)
 
 # Convert a `kabab-case` JSON Object name to a Roc Field name
-fromKebabCase = \str ->
-    kebabToCamel str
+from_kebab_case = \str ->
+    kebab_to_camel(str)
 
 # Convert a `camelCase` JSON Object name to a Roc Field name
-fromCamelCase = \str ->
+from_camel_case = \str ->
     # Nothing to change as Roc field names are camelCase by default
     str
 
 # Convert a `camelCase` Roc Field name to a `snake_case` JSON Object name
-toSnakeCase = \str ->
-    camelToSnake str
+to_snake_case = \str ->
+    camel_to_snake(str)
 
 # Convert a `camelCase` Roc Field name to a `PascalCase` JSON Object name
-toPascalCase = \str ->
-    camelToPascal str
+to_pascal_case = \str ->
+    camel_to_pascal(str)
 
 # Convert a `camelCase` Roc Field name to a `kabab-case` JSON Object name
-toKebabCase = \str ->
-    camelToKebeb str
+to_kebab_case = \str ->
+    camel_to_kebeb(str)
 
 # Convert a `camelCase` Roc Field name to a `camelCase` JSON Object name
-toCamelCase = \str ->
+to_camel_case = \str ->
     # Nothing to change as Roc field names are camelCase by default
     str
 
-snakeToCamel : Str -> Str
-snakeToCamel = \str ->
-    segments = Str.splitOn str "_"
+snake_to_camel : Str -> Str
+snake_to_camel = \str ->
+    segments = Str.split_on(str, "_")
     when segments is
         [first, .. as rest] ->
             rest
-            |> List.map uppercaseFirst
-            |> List.prepend first
-            |> Str.joinWith ""
+            |> List.map(uppercase_first)
+            |> List.prepend(first)
+            |> Str.join_with("")
 
         _ -> str
 
-expect snakeToCamel "snake_case_string" == "snakeCaseString"
+expect snake_to_camel("snake_case_string") == "snakeCaseString"
 
-pascalToCamel : Str -> Str
-pascalToCamel = \str ->
-    segments = Str.toUtf8 str
+pascal_to_camel : Str -> Str
+pascal_to_camel = \str ->
+    segments = Str.to_utf8(str)
     when segments is
         [a, .. as rest] ->
-            first = toLowercase a
-            rest |> List.prepend first |> Str.fromUtf8 |> crashOnBadUtf8Error
+            first = to_lowercase(a)
+            rest |> List.prepend(first) |> Str.from_utf8 |> crash_on_bad_utf8_error
 
         _ -> str
 
-expect pascalToCamel "PascalCaseString" == "pascalCaseString"
+expect pascal_to_camel("PascalCaseString") == "pascalCaseString"
 
-kebabToCamel : Str -> Str
-kebabToCamel = \str ->
-    segments = Str.splitOn str "-"
+kebab_to_camel : Str -> Str
+kebab_to_camel = \str ->
+    segments = Str.split_on(str, "-")
     when segments is
         [first, .. as rest] ->
             rest
-            |> List.map uppercaseFirst
-            |> List.prepend first
-            |> Str.joinWith ""
+            |> List.map(uppercase_first)
+            |> List.prepend(first)
+            |> Str.join_with("")
 
         _ -> str
 
-expect kebabToCamel "kebab-case-string" == "kebabCaseString"
+expect kebab_to_camel("kebab-case-string") == "kebabCaseString"
 
-camelToPascal : Str -> Str
-camelToPascal = \str ->
-    segments = Str.toUtf8 str
+camel_to_pascal : Str -> Str
+camel_to_pascal = \str ->
+    segments = Str.to_utf8(str)
     when segments is
         [a, .. as rest] ->
-            first = toUppercase a
-            rest |> List.prepend first |> Str.fromUtf8 |> crashOnBadUtf8Error
+            first = to_uppercase(a)
+            rest |> List.prepend(first) |> Str.from_utf8 |> crash_on_bad_utf8_error
 
         _ -> str
 
-expect camelToPascal "someCaseString" == "SomeCaseString"
+expect camel_to_pascal("someCaseString") == "SomeCaseString"
 
-camelToKebeb : Str -> Str
-camelToKebeb = \str ->
-    rest = Str.toUtf8 str
-    taken = List.withCapacity (List.len rest)
+camel_to_kebeb : Str -> Str
+camel_to_kebeb = \str ->
+    rest = Str.to_utf8(str)
+    taken = List.with_capacity(List.len(rest))
 
-    camelToKebabHelp { taken, rest }
+    camel_to_kebab_help({ taken, rest })
     |> .taken
-    |> Str.fromUtf8
-    |> crashOnBadUtf8Error
+    |> Str.from_utf8
+    |> crash_on_bad_utf8_error
 
-camelToKebabHelp : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
-camelToKebabHelp = \{ taken, rest } ->
+camel_to_kebab_help : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
+camel_to_kebab_help = \{ taken, rest } ->
     when rest is
         [] -> { taken, rest }
-        [a, ..] if isUpperCase a ->
-            camelToKebabHelp {
-                taken: List.concat taken ['-', toLowercase a],
-                rest: List.dropFirst rest 1,
-            }
+        [a, ..] if is_upper_case(a) ->
+            camel_to_kebab_help({
+                taken: List.concat(taken, ['-', to_lowercase(a)]),
+                rest: List.drop_first(rest, 1),
+            })
 
         [a, ..] ->
-            camelToKebabHelp {
-                taken: List.append taken a,
-                rest: List.dropFirst rest 1,
-            }
+            camel_to_kebab_help({
+                taken: List.append(taken, a),
+                rest: List.drop_first(rest, 1),
+            })
 
-expect camelToKebeb "someCaseString" == "some-case-string"
+expect camel_to_kebeb("someCaseString") == "some-case-string"
 
-camelToSnake : Str -> Str
-camelToSnake = \str ->
-    rest = Str.toUtf8 str
-    taken = List.withCapacity (List.len rest)
+camel_to_snake : Str -> Str
+camel_to_snake = \str ->
+    rest = Str.to_utf8(str)
+    taken = List.with_capacity(List.len(rest))
 
-    camelToSnakeHelp { taken, rest }
+    camel_to_snake_help({ taken, rest })
     |> .taken
-    |> Str.fromUtf8
-    |> crashOnBadUtf8Error
+    |> Str.from_utf8
+    |> crash_on_bad_utf8_error
 
-camelToSnakeHelp : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
-camelToSnakeHelp = \{ taken, rest } ->
+camel_to_snake_help : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
+camel_to_snake_help = \{ taken, rest } ->
     when rest is
         [] -> { taken, rest }
-        [a, ..] if isUpperCase a ->
-            camelToSnakeHelp {
-                taken: List.concat taken ['_', toLowercase a],
-                rest: List.dropFirst rest 1,
-            }
+        [a, ..] if is_upper_case(a) ->
+            camel_to_snake_help({
+                taken: List.concat(taken, ['_', to_lowercase(a)]),
+                rest: List.drop_first(rest, 1),
+            })
 
         [a, ..] ->
-            camelToSnakeHelp {
-                taken: List.append taken a,
-                rest: List.dropFirst rest 1,
-            }
+            camel_to_snake_help({
+                taken: List.append(taken, a),
+                rest: List.drop_first(rest, 1),
+            })
 
-expect camelToSnake "someCaseString" == "some_case_string"
+expect camel_to_snake("someCaseString") == "some_case_string"
 
-uppercaseFirst : Str -> Str
-uppercaseFirst = \str ->
-    segments = Str.toUtf8 str
+uppercase_first : Str -> Str
+uppercase_first = \str ->
+    segments = Str.to_utf8(str)
     when segments is
         [a, .. as rest] ->
-            first = toUppercase a
-            rest |> List.prepend first |> Str.fromUtf8 |> crashOnBadUtf8Error
+            first = to_uppercase(a)
+            rest |> List.prepend(first) |> Str.from_utf8 |> crash_on_bad_utf8_error
 
         _ -> str
 
-toUppercase : U8 -> U8
-toUppercase = \codeunit ->
+to_uppercase : U8 -> U8
+to_uppercase = \codeunit ->
     if 'a' <= codeunit && codeunit <= 'z' then
         codeunit - (32) # 32 is the difference to the respecive uppercase letters
     else
         codeunit
 
-toLowercase : U8 -> U8
-toLowercase = \codeunit ->
+to_lowercase : U8 -> U8
+to_lowercase = \codeunit ->
     if 'A' <= codeunit && codeunit <= 'Z' then
         codeunit + 32 # 32 is the difference to the respecive lowercase letters
     else
         codeunit
 
-isUpperCase : U8 -> Bool
-isUpperCase = \codeunit ->
+is_upper_case : U8 -> Bool
+is_upper_case = \codeunit ->
     'A' <= codeunit && codeunit <= 'Z'
 
-eatWhitespace : List U8 -> List U8
-eatWhitespace = \bytes ->
+eat_whitespace : List U8 -> List U8
+eat_whitespace = \bytes ->
     when bytes is
-        [a, ..] if isWhitespace a -> eatWhitespace (List.dropFirst bytes 1)
+        [a, ..] if is_whitespace(a) -> eat_whitespace(List.drop_first(bytes, 1))
         _ -> bytes
 
-expect eatWhitespace (Str.toUtf8 "") == (Str.toUtf8 "")
-expect eatWhitespace (Str.toUtf8 "ABC    ") == (Str.toUtf8 "ABC    ")
-expect eatWhitespace (Str.toUtf8 "  \nABC    ") == (Str.toUtf8 "ABC    ")
+expect eat_whitespace(Str.to_utf8("")) == (Str.to_utf8(""))
+expect eat_whitespace(Str.to_utf8("ABC    ")) == (Str.to_utf8("ABC    "))
+expect eat_whitespace(Str.to_utf8("  \nABC    ")) == (Str.to_utf8("ABC    "))
 
-crashOnBadUtf8Error : Result Str _ -> Str
-crashOnBadUtf8Error = \res ->
+crash_on_bad_utf8_error : Result Str _ -> Str
+crash_on_bad_utf8_error = \res ->
     when res is
-        Ok str -> str
-        Err _ -> crash "invalid UTF-8 code units"
+        Ok(str) -> str
+        Err(_) -> crash("invalid UTF-8 code units")
 
-nullChars = "null" |> Str.toUtf8
+null_chars = "null" |> Str.to_utf8
 
 ## Returns `Null` if the input starts with "null"
-## If makeNullEmpty is true Null{bytes} will be empty
-nullToEmpty : List U8, Bool -> [Null _, NotNull]
-nullToEmpty = \bytes, makeNullEmpty ->
+## If make_null_empty is true Null{bytes} will be empty
+null_to_empty : List U8, Bool -> [Null _, NotNull]
+null_to_empty = \bytes, make_null_empty ->
     when bytes is
         ['n', 'u', 'l', 'l', .. as rest] ->
-            if makeNullEmpty then
-                Null { bytes: [], rest }
+            if make_null_empty then
+                Null({ bytes: [], rest })
             else
-                Null { bytes: nullChars, rest }
+                Null({ bytes: null_chars, rest })
 
         _ -> NotNull
 
-emptyToNull : List U8, Bool -> List U8
-emptyToNull = \bytes, makeEmptyNull ->
-    if bytes == [] && makeEmptyNull then
-        nullChars
+empty_to_null : List U8, Bool -> List U8
+empty_to_null = \bytes, make_empty_null ->
+    if bytes == [] && make_empty_null then
+        null_chars
     else
         bytes
 
 ## If the field value is "null" we may want to make it the same as the field simply not being there for decoding simplicity
-decodePotentialNull = \bytes, decoder, @Json jsonFmt ->
-    when nullToEmpty bytes jsonFmt.nullDecodeAsEmpty is
-        Null { bytes: nullBytes, rest: nullRest } ->
-            decode = Decode.decodeWith (nullBytes) decoder (@Json jsonFmt)
+decode_potential_null = \bytes, decoder, @Json(json_fmt) ->
+    when null_to_empty(bytes, json_fmt.null_decode_as_empty) is
+        Null({ bytes: null_bytes, rest: null_rest }) ->
+            decode = Decode.decode_with(null_bytes, decoder, @Json(json_fmt))
             # We have to replace the rest because if the null was converted to empty the decoder would return an empty rest
-            { result: decode.result, rest: nullRest }
+            { result: decode.result, rest: null_rest }
 
         NotNull ->
-            Decode.decodeWith bytes decoder (@Json jsonFmt)
+            Decode.decode_with(bytes, decoder, @Json(json_fmt))

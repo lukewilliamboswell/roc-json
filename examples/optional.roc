@@ -7,29 +7,29 @@ import cli.Stdout
 import json.Json
 import json.OptionOrNull exposing [OptionOrNull]
 
-Object : { firstName : Str, lastName : OptionOrNull Str }
+Object : { first_name : Str, last_name : OptionOrNull Str }
 
 main =
-    noneObj : Object
-    noneObj = { firstName: "Luke", lastName: OptionOrNull.none {} }
-    nullObj : Object
-    nullObj = { firstName: "Luke", lastName: OptionOrNull.null {} }
-    someObj : Object
-    someObj = { firstName: "Luke", lastName: OptionOrNull.some "Boswell" }
+    none_obj : Object
+    none_obj = { first_name: "Luke", last_name: OptionOrNull.none({}) }
+    null_obj : Object
+    null_obj = { first_name: "Luke", last_name: OptionOrNull.null({}) }
+    some_obj : Object
+    some_obj = { first_name: "Luke", last_name: OptionOrNull.some("Boswell") }
 
     # noneJson == {"firstName":"Luke",}
-    noneJson = Encode.toBytes noneObj (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { record: Bool.false } })
-    Stdout.line! (noneJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
+    none_json = Encode.to_bytes(none_obj, Json.utf8_with({ empty_encode_as_null: Json.encode_as_null_option({ record: Bool.false }) }))
+    Stdout.line!((none_json |> Str.from_utf8 |> Result.with_default("Failed to encode JSON")))
 
     # nullNoneJson == {"firstName":"Luke","lastName":null}
-    nullNoneJson = Encode.toBytes noneObj (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { record: Bool.true } })
-    Stdout.line! (nullNoneJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
+    null_none_json = Encode.to_bytes(none_obj, Json.utf8_with({ empty_encode_as_null: Json.encode_as_null_option({ record: Bool.true }) }))
+    Stdout.line!((null_none_json |> Str.from_utf8 |> Result.with_default("Failed to encode JSON")))
 
     # nullJson == {"firstName":"Luke","lastName":null}
-    nullJson = Encode.toBytes nullObj Json.utf8
-    Stdout.line! (nullJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
+    null_json = Encode.to_bytes(null_obj, Json.utf8)
+    Stdout.line!((null_json |> Str.from_utf8 |> Result.with_default("Failed to encode JSON")))
 
     # someJson == {"firstName":"Luke","lastName":"Boswell"}
-    someJson = Encode.toBytes someObj Json.utf8
-    Stdout.line (someJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
+    some_json = Encode.to_bytes(some_obj, Json.utf8)
+    Stdout.line((some_json |> Str.from_utf8 |> Result.with_default("Failed to encode JSON")))
 
