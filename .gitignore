@@ -7,3 +7,5 @@ examples/htt-json-get
 .DS_Store
 
 generated-docs/
+
+ci/rust_http_server/target/
