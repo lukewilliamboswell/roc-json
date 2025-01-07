@@ -3,14 +3,9 @@
 # https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
 set -euxo pipefail
 
-if [ -z "${ROC}" ]; then
-  echo "ERROR: The ROC environment variable is not set.
-    Set it to something like:
-        /home/username/Downloads/roc_nightly-linux_x86_64-2023-10-30-cb00cfb/roc
-        or
-        /home/username/gitrepos/roc/target/build/release/roc" >&2
-
-  exit 1
+if [ -z "${ROC:-}" ]; then
+  echo "INFO: The ROC environment variable is not set."
+  export ROC=$(which roc)
 fi
 
 EXAMPLES_DIR='./examples'
@@ -26,11 +21,16 @@ for ROC_FILE in $EXAMPLES_DIR/*.roc; do
     $ROC build $ROC_FILE --linker=legacy
 done
 
+# prep for next step
+cd ci/rust_http_server
+cargo build --release
+cd ../..
+
 # check output
 for ROC_FILE in $EXAMPLES_DIR/*.roc; do
     ROC_FILE_ONLY="$(basename "$ROC_FILE")"
     NO_EXT_NAME=${ROC_FILE_ONLY%.*}
-    expect ci/expect_scripts/$NO_EXT_NAME.exp
+    EXAMPLES_DIR="$EXAMPLES_DIR" expect ci/expect_scripts/$NO_EXT_NAME.exp
 done
 
 # `roc test` every roc file if it contains a test, skip roc_nightly folder

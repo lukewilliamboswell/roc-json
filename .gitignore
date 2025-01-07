@@ -2,5 +2,8 @@ examples/optional
 examples/simple1
 examples/simple2
 examples/tuple
+examples/htt-json-get
+
 .DS_Store
+
 generated-docs/
