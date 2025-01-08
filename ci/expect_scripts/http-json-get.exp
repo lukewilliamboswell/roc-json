@@ -11,7 +11,7 @@ source ./ci/expect_scripts/shared-code.exp
 set server_pid [exec ./ci/rust_http_server/target/release/rust_http_server &]
 sleep 3
 
-spawn $env(EXAMPLES_DIR)http-get-json
+spawn $env(EXAMPLES_DIR)/http-get-json
 
 expect "The json I received was: { foo: \"Hello Json!\" }\r\n" {
     exec kill $server_pid

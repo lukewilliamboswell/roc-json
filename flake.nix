@@ -26,11 +26,13 @@
         darwinInputs = with pkgs;
           lib.optionals stdenv.isDarwin
           (with pkgs.darwin.apple_sdk.frameworks; [
+            pkgs.libiconv
           ]);
 
         sharedInputs = (with pkgs; [
           expect
           rocPkgs.cli
+          simple-http-server
         ]);
       in {
 
