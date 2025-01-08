@@ -660,7 +660,7 @@ expect
     actual = Str.toUtf8 "12.34e-5" |> Decode.fromBytesPartial utf8
     numStr = actual.result |> Result.map Num.toStr
 
-    Result.withDefault numStr "" == "0.00012339999375399202"
+    Result.withDefault numStr "" == "0.0001234"
 
 decodeF64 = Decode.custom \bytes, @Json {} ->
     { taken, rest } = takeJsonNumber bytes
