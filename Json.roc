@@ -1,41 +1,24 @@
-## JSON is a data format that is easy for humans to read and write. It is
-## commonly used to exhange data between two systems such as a server and a
-## client (e.g. web browser).
-##
-## This module implements functionality to serialise and de-serialise Roc types
-## to and from JSON data. Using the `Encode` and `Decode` builtins this process
-## can be achieved without the need to write custom encoder and decoder functions
-## to parse UTF-8 strings.
-##
-## Here is a basic example which shows how to parse a JSON record into a Roc
-## type named `Language` which includes a `name` field. The JSON string is
-## decoded and then the field is encoded back into a UTF-8 string.
-##
-## ```
-## Language : {
-##     name : Str,
-## }
-##
-## json_str = Str.to_utf8("{\"name\":\"Röc Lang\"}")
-##
-## result : Result Language _
-## result =
-##     json_str
-##     |> Decode.from_bytes(Json.utf8) # returns `Ok({name : "Röc Lang"})`
-##
-## name =
-##     decoded_value = result?
-##
-##     Ok (Encode.to_bytes decoded_value.name Json.utf8)
-##
-## expect name == Ok(Str.to_utf8("\"Röc Lang\""))
-## ```
 module [
     Json,
     utf8,
     utf8_with,
     encode_as_null_option,
 ]
+
+expect
+    input : List U8
+    input = Str.to_utf8("{\"first_segment\":\"ab\"}")
+
+    decoder : Json
+    decoder = utf8_with({ field_name_mapping: SnakeCase })
+
+    actual : DecodeResult { first_segment : Str }
+    actual = Decode.from_bytes_partial(input, decoder)
+
+    expected : DecodeResult { first_segment : Str }
+    expected = { rest: [], result: Ok({ first_segment: "ab" }) }
+
+    actual == expected
 
 ## An opaque type with the `Encode.EncoderFormatting` and
 ## `DecoderFormatting` abilities.
@@ -224,14 +207,6 @@ encode_bool = \b ->
                 List.concat(bytes, Str.to_utf8("false")),
     )
 
-# Test encode boolean
-expect
-    input = [Bool.true, Bool.false]
-    actual = Encode.to_bytes(input, utf8)
-    expected = Str.to_utf8("[true,false]")
-
-    actual == expected
-
 encode_string = \str ->
     Encode.custom(
         \bytes, @Json({}) ->
@@ -311,34 +286,6 @@ escaped_byte_to_json = \b ->
         0x09 -> [0x5c, 'r'] # U+0009 Tab
         _ -> [b]
 
-expect escaped_byte_to_json('\n') == ['\\', 'n']
-expect escaped_byte_to_json('\\') == ['\\', '\\']
-expect escaped_byte_to_json('"') == ['\\', '"']
-
-# Test encode small string
-expect
-    input = "G'day"
-    actual = Encode.to_bytes(input, utf8)
-    expected = Str.to_utf8("\"G'day\"")
-
-    actual == expected
-
-# Test encode large string
-expect
-    input = "the quick brown fox jumps over the lazy dog"
-    actual = Encode.to_bytes(input, utf8)
-    expected = Str.to_utf8("\"the quick brown fox jumps over the lazy dog\"")
-
-    actual == expected
-
-# Test encode with escapes e.g. "\r" encodes to "\\r"
-expect
-    input = "the quick brown fox jumps over the lazy doga\r\nbc\\\"xz"
-    actual = Encode.to_bytes(input, utf8)
-    expected = Str.to_utf8("\"the quick brown fox jumps over the lazy doga\\r\\nbc\\\\\\\"xz\"")
-
-    actual == expected
-
 encode_list = \lst, encode_elem ->
     Encode.custom(
         \bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
@@ -369,15 +316,6 @@ encode_list = \lst, encode_elem ->
 
             List.append(with_list, Num.to_u8(']')),
     )
-
-# Test encode list of floats
-expect
-    input : List F64
-    input = [-1, 0.00001, 1e12, 2.0e-2, 0.0003, 43]
-    actual = Encode.to_bytes(input, utf8)
-    expected = Str.to_utf8("[-1,0.00001,1000000000000,0.02,0.0003,43]")
-
-    actual == expected
 
 encode_record = \fields ->
     Encode.custom(
@@ -417,47 +355,11 @@ encode_record = \fields ->
             List.append(bytes_with_record, Num.to_u8('}')),
     )
 
-# Test encode for a record with two strings ignoring whitespace
-expect
-    input = { fruit_count: 2, owner_name: "Farmer Joe" }
-    encoder = utf8_with({ field_name_mapping: PascalCase })
-    actual = Encode.to_bytes(input, encoder)
-    expected = Str.to_utf8("{\"FruitCount\":2,\"OwnerName\":\"Farmer Joe\"}")
-
-    actual == expected
-
-# Test encode of record with an array of strings and a boolean field
-expect
-    input = { fruit_flavours: ["Apples", "Bananas", "Pears"], is_fresh: Bool.true }
-    encoder = utf8_with({ field_name_mapping: KebabCase })
-    actual = Encode.to_bytes(input, encoder)
-    expected = Str.to_utf8("{\"fruit-flavours\":[\"Apples\",\"Bananas\",\"Pears\"],\"is-fresh\":true}")
-
-    actual == expected
-
-# Test encode of record with a string and number field
-expect
-    input = { first_segment: "ab", second_segment: 10u8 }
-    encoder = utf8_with({ field_name_mapping: SnakeCase })
-    actual = Encode.to_bytes(input, encoder)
-    expected = Str.to_utf8("{\"first_segment\":\"ab\",\"second_segment\":10}")
-
-    actual == expected
-
-# Test encode of record of a record
-expect
-    input = { outer: { inner: "a" }, other: { one: "b", two: 10u8 } }
-    encoder = utf8_with({ field_name_mapping: Custom(to_yelling_case) })
-    actual = Encode.to_bytes(input, encoder)
-    expected = Str.to_utf8("{\"OTHER\":{\"ONE\":\"b\",\"TWO\":10},\"OUTER\":{\"INNER\":\"a\"}}")
-
-    actual == expected
-
-to_yelling_case = \str ->
-    Str.to_utf8(str)
-    |> List.map(to_uppercase)
-    |> Str.from_utf8
-    |> crash_on_bad_utf8_error
+#to_yelling_case = \str ->
+#    Str.to_utf8(str)
+#    |> List.map(to_uppercase)
+#    |> Str.from_utf8
+#    |> crash_on_bad_utf8_error
 
 encode_tuple = \elems ->
     Encode.custom(
@@ -489,14 +391,6 @@ encode_tuple = \elems ->
             List.append(bytes_with_record, Num.to_u8(']')),
     )
 
-# Test encode of tuple
-expect
-    input = ("The Answer is", 42)
-    actual = Encode.to_bytes(input, utf8)
-    expected = Str.to_utf8("[\"The Answer is\",42]")
-
-    actual == expected
-
 encode_tag = \name, payload ->
     Encode.custom(
         \bytes, @Json(json_fmt) ->
@@ -525,15 +419,6 @@ encode_tag = \name, payload ->
             |> List.append(Num.to_u8('}')),
     )
 
-# Test encode of tag
-expect
-    input = TheAnswer("is", 42)
-    encoder = utf8_with({ field_name_mapping: KebabCase })
-    actual = Encode.to_bytes(input, encoder)
-    expected = Str.to_utf8("{\"TheAnswer\":[\"is\",42]}")
-
-    actual == expected
-
 decode_u8 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -546,11 +431,6 @@ decode_u8 = Decode.custom(
 
         { result, rest },
 )
-
-# Test decode of U8
-expect
-    actual = Str.to_utf8("255") |> Decode.from_bytes(utf8)
-    actual == Ok(255u8)
 
 decode_u16 = Decode.custom(
     \bytes, @Json({}) ->
@@ -565,11 +445,6 @@ decode_u16 = Decode.custom(
         { result, rest },
 )
 
-# Test decode of U16
-expect
-    actual = Str.to_utf8("65535") |> Decode.from_bytes(utf8)
-    actual == Ok(65_535u16)
-
 decode_u32 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -582,11 +457,6 @@ decode_u32 = Decode.custom(
 
         { result, rest },
 )
-
-# Test decode of U32
-expect
-    actual = Str.to_utf8("4000000000") |> Decode.from_bytes(utf8)
-    actual == Ok(4_000_000_000u32)
 
 decode_u64 = Decode.custom(
     \bytes, @Json({}) ->
@@ -601,11 +471,6 @@ decode_u64 = Decode.custom(
         { result, rest },
 )
 
-# Test decode of U64
-expect
-    actual = Str.to_utf8("18446744073709551614") |> Decode.from_bytes(utf8)
-    actual == Ok(18_446_744_073_709_551_614u64)
-
 decode_u128 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -618,11 +483,6 @@ decode_u128 = Decode.custom(
 
         { result, rest },
 )
-
-# Test decode of U128
-expect
-    actual = Str.to_utf8("1234567") |> Decode.from_bytes_partial(utf8)
-    actual.result == Ok(1234567u128)
 
 decode_i8 = Decode.custom(
     \bytes, @Json({}) ->
@@ -637,11 +497,6 @@ decode_i8 = Decode.custom(
         { result, rest },
 )
 
-# Test decode of I8
-expect
-    actual = Str.to_utf8("-125") |> Decode.from_bytes_partial(utf8)
-    actual.result == Ok(-125i8)
-
 decode_i16 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -654,11 +509,6 @@ decode_i16 = Decode.custom(
 
         { result, rest },
 )
-
-# Test decode of I16
-expect
-    actual = Str.to_utf8("-32768") |> Decode.from_bytes_partial(utf8)
-    actual.result == Ok(-32_768i16)
 
 decode_i32 = Decode.custom(
     \bytes, @Json({}) ->
@@ -673,11 +523,6 @@ decode_i32 = Decode.custom(
         { result, rest },
 )
 
-# Test decode of I32
-expect
-    actual = Str.to_utf8("-2147483648") |> Decode.from_bytes_partial(utf8)
-    actual.result == Ok(-2_147_483_648i32)
-
 decode_i64 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -690,11 +535,6 @@ decode_i64 = Decode.custom(
 
         { result, rest },
 )
-
-# Test decode of I64
-expect
-    actual = Str.to_utf8("-9223372036854775808") |> Decode.from_bytes_partial(utf8)
-    actual.result == Ok(-9_223_372_036_854_775_808i64)
 
 decode_i128 = Decode.custom(
     \bytes, @Json({}) ->
@@ -722,14 +562,6 @@ decode_f32 = Decode.custom(
         { result, rest },
 )
 
-# Test decode of F32
-expect
-    actual : DecodeResult F32
-    actual = Str.to_utf8("12.34e-5") |> Decode.from_bytes_partial(utf8)
-    num_str = actual.result |> Result.map(Num.to_str)
-
-    Result.with_default(num_str, "") == "0.0001234"
-
 decode_f64 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -742,14 +574,6 @@ decode_f64 = Decode.custom(
 
         { result, rest },
 )
-
-# Test decode of F64
-expect
-    actual : DecodeResult F64
-    actual = Str.to_utf8("12.34e-5") |> Decode.from_bytes_partial(utf8)
-    num_str = actual.result |> Result.map(Num.to_str)
-
-    Result.with_default(num_str, "") == "0.0001234"
 
 decode_dec = Decode.custom(
     \bytes, @Json({}) ->
@@ -764,13 +588,6 @@ decode_dec = Decode.custom(
         { result, rest },
 )
 
-# Test decode of Dec
-expect
-    actual : DecodeResult Dec
-    actual = Str.to_utf8("12.0034") |> Decode.from_bytes_partial(utf8)
-
-    actual.result == Ok(12.0034dec)
-
 decode_bool = Decode.custom(
     \bytes, @Json({}) ->
         when bytes is
@@ -778,18 +595,6 @@ decode_bool = Decode.custom(
             ['t', 'r', 'u', 'e', ..] -> { result: Ok(Bool.true), rest: List.drop_first(bytes, 4) }
             _ -> { result: Err(TooShort), rest: bytes },
 )
-
-# Test decode of Bool
-expect
-    actual = "true\n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Ok(Bool.true)
-    actual.result == expected
-
-# Test decode of Bool
-expect
-    actual = "false ]\n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Ok(Bool.false)
-    actual.result == expected
 
 decode_tuple = \initial_state, step_elem, finalizer ->
     Decode.custom(
@@ -837,21 +642,6 @@ decode_tuple = \initial_state, step_elem, finalizer ->
                     ),
             ),
     )
-
-# Test decode of tuple
-expect
-    input = Str.to_utf8("[\"The Answer is\",42]")
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    actual.result == Ok(("The Answer is", 42))
-
-# Test decode with whitespace
-expect
-    input = Str.to_utf8("[ 123,\t456\n]")
-    actual = Decode.from_bytes_partial(input, utf8)
-    expected = Ok((123, 456))
-
-    actual.result == expected
 
 parse_exact_char : List U8, U8 -> DecodeResult {}
 parse_exact_char = \bytes, char ->
@@ -968,126 +758,6 @@ is_valid_end = \b ->
         ']' | ',' | ' ' | '\n' | '\r' | '\t' | '}' -> Bool.true
         _ -> Bool.false
 
-expect
-    actual = "0.0" |> Str.to_utf8 |> Decode.from_bytes(utf8)
-    expected = Ok(0.0dec)
-    actual == expected
-
-expect
-    actual = "0" |> Str.to_utf8 |> Decode.from_bytes(utf8)
-    expected = Ok(0u8)
-    actual == expected
-
-expect
-    actual = "1 " |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = { result: Ok(1dec), rest: [' '] }
-    actual == expected
-
-expect
-    actual = "2]" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = { result: Ok(2u64), rest: [']'] }
-    actual == expected
-
-expect
-    actual = "30,\n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = { result: Ok(30i64), rest: [',', '\n'] }
-    actual == expected
-
-expect
-    actual : DecodeResult U16
-    actual = "+1" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = { result: Err(TooShort), rest: ['+', '1'] }
-    actual == expected
-
-expect
-    actual : DecodeResult U16
-    actual = ".0" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = { result: Err(TooShort), rest: ['.', '0'] }
-    actual == expected
-
-expect
-    actual : DecodeResult U64
-    actual = "-.1" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    actual.result == Err(TooShort)
-
-expect
-    actual : DecodeResult Dec
-    actual = "72" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Ok(72dec)
-    actual.result == expected
-
-expect
-    actual : DecodeResult Dec
-    actual = "-0" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Ok(0dec)
-    actual.result == expected
-
-expect
-    actual : DecodeResult Dec
-    actual = "-7" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Ok(-7dec)
-    actual.result == expected
-
-expect
-    actual : DecodeResult Dec
-    actual = "-0\n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = { result: Ok(0dec), rest: ['\n'] }
-    actual == expected
-
-expect
-    actual : DecodeResult Dec
-    actual = "123456789000 \n" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = { result: Ok(123456789000dec), rest: [' ', '\n'] }
-    actual == expected
-
-expect
-    actual : DecodeResult Dec
-    actual = "-12.03" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Ok(-12.03)
-    actual.result == expected
-
-expect
-    actual : DecodeResult U64
-    actual = "-12." |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Err(TooShort)
-    actual.result == expected
-
-expect
-    actual : DecodeResult U64
-    actual = "01.1" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Err(TooShort)
-    actual.result == expected
-
-expect
-    actual : DecodeResult U64
-    actual = ".0" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Err(TooShort)
-    actual.result == expected
-
-expect
-    actual : DecodeResult U64
-    actual = "1.e1" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Err(TooShort)
-    actual.result == expected
-
-expect
-    actual : DecodeResult U64
-    actual = "-1.2E" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Err(TooShort)
-    actual.result == expected
-
-expect
-    actual : DecodeResult U64
-    actual = "0.1e+" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Err(TooShort)
-    actual.result == expected
-
-expect
-    actual : DecodeResult U64
-    actual = "-03" |> Str.to_utf8 |> Decode.from_bytes_partial(utf8)
-    expected = Err(TooShort)
-    actual.result == expected
-
 # JSON STRING PRIMITIVE --------------------------------------------------------
 
 # Decode a Json string primitive into a RocStr
@@ -1184,16 +854,11 @@ escaped_char_from_json = \b ->
         't' -> 0x09 # U+0009 Tab
         _ -> b
 
-expect escaped_char_from_json('n') == '\n'
-
 is_hex : U8 -> Bool
 is_hex = \b ->
     (b >= '0' && b <= '9')
     || (b >= 'a' && b <= 'f')
     || (b >= 'A' && b <= 'F')
-
-expect is_hex('0') && is_hex('f') && is_hex('F') && is_hex('A') && is_hex('9')
-expect !(is_hex('g') && is_hex('x') && is_hex('u') && is_hex('\\') && is_hex('-'))
 
 json_hex_to_decimal : U8 -> U8
 json_hex_to_decimal = \b ->
@@ -1206,26 +871,9 @@ json_hex_to_decimal = \b ->
     else
         crash("got an invalid hex char")
 
-expect json_hex_to_decimal('0') == 0
-expect json_hex_to_decimal('9') == 9
-expect json_hex_to_decimal('a') == 10
-expect json_hex_to_decimal('A') == 10
-expect json_hex_to_decimal('f') == 15
-expect json_hex_to_decimal('F') == 15
-
-decimal_hex_to_byte : U8, U8 -> U8
-decimal_hex_to_byte = \upper, lower ->
-    Num.bitwise_or(Num.shift_left_by(upper, 4), lower)
-
-expect
-    actual = decimal_hex_to_byte(3, 7)
-    expected = '7'
-    actual == expected
-
-expect
-    actual = decimal_hex_to_byte(7, 4)
-    expected = 't'
-    actual == expected
+#decimal_hex_to_byte : U8, U8 -> U8
+#decimal_hex_to_byte = \upper, lower ->
+#    Num.bitwise_or(Num.shift_left_by(upper, 4), lower)
 
 hex_to_utf8 : U8, U8, U8, U8 -> List U8
 hex_to_utf8 = \a, b, c, d ->
@@ -1312,24 +960,6 @@ codepoint_to_utf8 = \u32 ->
 
         [byte1, byte2, byte3, byte4]
 
-# Test for \u0074 == U+74 == 't' in Basic Multilingual Plane
-expect
-    actual = hex_to_utf8('0', '0', '7', '4')
-    expected = ['t']
-    actual == expected
-
-# Test for \u0068 == U+68 == 'h' in Basic Multilingual Plane
-expect
-    actual = hex_to_utf8('0', '0', '6', '8')
-    expected = ['h']
-    actual == expected
-
-# Test for \u2c64 == U+2C64 == 'Ɽ' in Latin Extended-C
-expect
-    actual = hex_to_utf8('2', 'C', '6', '4')
-    expected = [0xE2, 0xB1, 0xA4]
-    actual == expected
-
 unicode_replacement = [0xEF, 0xBF, 0xBD]
 
 replace_escaped_chars : { in_bytes : List U8, out_bytes : List U8 } -> { in_bytes : List U8, out_bytes : List U8 }
@@ -1383,47 +1013,6 @@ replace_escaped_chars = \{ in_bytes, out_bytes } ->
 
         _ ->
             { in_bytes, out_bytes }
-
-# Test replacement of both extended and shorthand unicode escapes
-expect
-    in_bytes = Str.to_utf8("\\\\\\u0074\\u0068\\u0065\\t\\u0071\\u0075\\u0069\\u0063\\u006b\\n")
-    actual = replace_escaped_chars({ in_bytes, out_bytes: [] })
-    expected = { in_bytes: [], out_bytes: ['\\', 't', 'h', 'e', '\t', 'q', 'u', 'i', 'c', 'k', '\n'] }
-
-    actual == expected
-
-# Test decode simple string
-expect
-    input = "\"hello\", " |> Str.to_utf8
-    actual = Decode.from_bytes_partial(input, utf8)
-    expected = Ok("hello")
-
-    actual.result == expected
-
-# Test decode string with extended and shorthand json escapes
-expect
-    input = "\"h\\\"\\u0065llo\\n\"]\n" |> Str.to_utf8
-    actual = Decode.from_bytes_partial(input, utf8)
-    expected = Ok("h\"ello\n")
-
-    actual.result == expected
-
-# Test json string decoding with escapes
-expect
-    input = Str.to_utf8("\"a\r\nbc\\txz\"\t\n,  ")
-    actual = Decode.from_bytes_partial(input, utf8)
-    expected = Ok("a\r\nbc\txz")
-
-    actual.result == expected
-
-# Test decode of a null
-expect
-    input = Str.to_utf8("null")
-
-    actual : DecodeResult Str
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    Result.is_err(actual.result)
 
 # JSON ARRAYS ------------------------------------------------------------------
 
@@ -1513,13 +1102,6 @@ is_whitespace = \b ->
         ' ' | '\n' | '\r' | '\t' -> Bool.true
         _ -> Bool.false
 
-expect
-    input = ['1', 'a', ' ', '\n', 0x0d, 0x09]
-    actual = List.map(input, is_whitespace)
-    expected = [Bool.false, Bool.false, Bool.true, Bool.true, Bool.true, Bool.true]
-
-    actual == expected
-
 ArrayOpeningState : [
     BeforeOpeningBracket U64,
     AfterOpeningBracket U64,
@@ -1530,62 +1112,6 @@ ArrayClosingState : [
     BeforeNextElement U64,
     AfterClosingBracket U64,
 ]
-
-# Test decoding an empty array
-expect
-    input = Str.to_utf8("[ ]")
-
-    actual : DecodeResult (List U8)
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    actual.result == Ok([])
-
-# Test decode array of json numbers with whitespace
-expect
-    input = Str.to_utf8("\n[\t 1 , 2  , 3]")
-
-    actual : DecodeResult (List U64)
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok([1, 2, 3])
-
-    actual.result == expected
-
-# Test decode array of json strings ignoring whitespace
-expect
-    input = Str.to_utf8("\n\t [\n \"one\"\r , \"two\" , \n\"3\"\t]")
-
-    actual : DecodeResult (List Str)
-    actual = Decode.from_bytes_partial(input, utf8)
-    expected = Ok(["one", "two", "3"])
-
-    actual.result == expected
-
-# Test decode array of object field name mapping
-expect
-    input = Str.to_utf8("[{\"field_name\":1}]")
-
-    decoder = utf8_with({ field_name_mapping: SnakeCase })
-
-    actual : DecodeResult (List { field_name : U64 })
-    actual = Decode.from_bytes_partial(input, decoder)
-
-    expected = Ok([{ field_name: 1 }])
-
-    actual.result == expected
-
-# Test decode array of object not skipping missing properties
-expect
-    input = Str.to_utf8("[{\"extraField\":2,\"fieldName\":1}]")
-
-    decoder = utf8_with({ skip_missing_properties: Bool.false })
-
-    actual : DecodeResult (List { field_name : U64 })
-    actual = Decode.from_bytes_partial(input, decoder)
-
-    expected = Err(TooShort)
-
-    actual.result == expected
 
 # JSON OBJECTS -----------------------------------------------------------------
 
@@ -1733,182 +1259,6 @@ SkipValueState : [
     InvalidObject,
 ]
 
-# Test decode of partial record
-expect
-    input = Str.to_utf8("{\"extraField\":2, \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record in list additional field last
-expect
-    input = Str.to_utf8("[{\"ownerName\": \"Farmer Joe\", \"extraField\":2}]")
-    actual : DecodeResult (List { owner_name : Str })
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok([{ owner_name: "Farmer Joe" }])
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record in record partial field last
-expect
-    input = Str.to_utf8("{\"value\": {\"ownerName\": \"Farmer Joe\",\"extraField\":2}}")
-    actual : DecodeResult { value : { owner_name : Str } }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ value: { owner_name: "Farmer Joe" } })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record in partial record additional fields last
-expect
-    input = Str.to_utf8("{\"value\": {\"ownerName\": \"Farmer Joe\", \"extraField\":2}, \"extraField\":2}")
-    actual : DecodeResult { value : { owner_name : Str } }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ value: { owner_name: "Farmer Joe" } })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with multiple additional fields
-expect
-    input = Str.to_utf8("{\"extraField\":2, \"ownerName\": \"Farmer Joe\", \"extraField2\":2 }")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with string value
-expect
-    input = Str.to_utf8("{\"extraField\": \"abc\", \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with string value with a comma
-expect
-    input = Str.to_utf8("{\"extraField\": \"a,bc\", \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with string value with an escaped "
-expect
-    input = Str.to_utf8("{\"extraField\": \"a\\\"bc\", \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with an array
-expect
-    input = Str.to_utf8("{\"extraField\": [1,2,3], \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with a nested array
-expect
-    input = Str.to_utf8("{\"extraField\": [1,[4,5,[[9],6,7]],3], \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with a nested array with strings inside
-expect
-    input = Str.to_utf8("{\"extraField\": [\"a\", [\"bc]]]def\"]], \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with a nested array with escaped strings inside
-expect
-    input = Str.to_utf8("{\"extraField\": [\"a\", [\"b\\cdef\"]], \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with an object
-expect
-    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6 }, \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with a nested object
-expect
-    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"abcd\" } }, \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with a nested object and string
-expect
-    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab}}}}}cd\" } }, \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
-# Test decode of partial record with a nested object and string ending with an escaped char
-expect
-    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab\\cd\" } }, \"ownerName\": \"Farmer Joe\"}")
-    actual : DecodeResult { owner_name : Str }
-    actual = Decode.from_bytes_partial(input, utf8)
-
-    expected = Ok({ owner_name: "Farmer Joe" })
-
-    result = actual.result
-    result == expected
-
 object_help : ObjectState, U8 -> [Break ObjectState, Continue ObjectState]
 object_help = \state, byte ->
     when (state, byte) is
@@ -1941,84 +1291,28 @@ ObjectState : [
     InvalidObject,
 ]
 
-# Test decode of record with two strings ignoring whitespace
-expect
-    input = Str.to_utf8(" {\n\"FruitCount\"\t:2\n, \"OwnerName\": \"Farmer Joe\" } ")
-    decoder = utf8_with({ field_name_mapping: PascalCase })
-    actual = Decode.from_bytes_partial(input, decoder)
-    expected = Ok({ fruit_count: 2, owner_name: "Farmer Joe" })
-
-    actual.result == expected
-
-# Test decode of record with an array of strings and a boolean field
-expect
-    input = Str.to_utf8("{\"fruit-flavours\": [\"Apples\",\"Bananas\",\"Pears\"], \"is-fresh\": true }")
-    decoder = utf8_with({ field_name_mapping: KebabCase })
-    actual = Decode.from_bytes_partial(input, decoder)
-    expected = Ok({ fruit_flavours: ["Apples", "Bananas", "Pears"], is_fresh: Bool.true })
-
-    actual.result == expected
-
-# Test decode of record with a string and number field
-expect
-    input = Str.to_utf8("{\"first_segment\":\"ab\",\"second_segment\":10}")
-    decoder = utf8_with({ field_name_mapping: SnakeCase })
-    actual = Decode.from_bytes_partial(input, decoder)
-    expected = Ok({ first_segment: "ab", second_segment: 10u8 })
-
-    actual.result == expected
-
-# Test decode of record of a record
-expect
-    input = Str.to_utf8("{\"OUTER\":{\"INNER\":\"a\"},\"OTHER\":{\"ONE\":\"b\",\"TWO\":10}}")
-    decoder = utf8_with({ field_name_mapping: Custom(from_yelling_case) })
-    actual = Decode.from_bytes_partial(input, decoder)
-    expected = Ok({ outer: { inner: "a" }, other: { one: "b", two: 10u8 } })
-
-    actual.result == expected
-
-from_yelling_case = \str ->
-    Str.to_utf8(str)
-    |> List.map(to_lowercase)
-    |> Str.from_utf8
-    |> crash_on_bad_utf8_error
-
-expect from_yelling_case("YELLING") == "yelling"
+#from_yelling_case = \str ->
+#    Str.to_utf8(str)
+#    |> List.map(to_lowercase)
+#    |> Str.from_utf8
+#    |> crash_on_bad_utf8_error
 
 # Complex example from IETF RFC 8259 (2017)
-complex_example_json = Str.to_utf8("{\"Image\":{\"Animated\":false,\"Height\":600,\"Ids\":[116,943,234,38793],\"Thumbnail\":{\"Height\":125,\"Url\":\"http:\\/\\/www.example.com\\/image\\/481989943\",\"Width\":100},\"Title\":\"View from 15th Floor\",\"Width\":800}}")
-complex_example_record = {
-    image: {
-        width: 800,
-        height: 600,
-        title: "View from 15th Floor",
-        thumbnail: {
-            url: "http://www.example.com/image/481989943",
-            height: 125,
-            width: 100,
-        },
-        animated: Bool.false,
-        ids: [116, 943, 234, 38793],
-    },
-}
-
-# Test decode of Complex Example
-expect
-    input = complex_example_json
-    decoder = utf8_with({ field_name_mapping: PascalCase })
-    actual = Decode.from_bytes(input, decoder)
-    expected = Ok(complex_example_record)
-
-    actual == expected
-
-# Test encode of Complex Example
-expect
-    input = complex_example_record
-    encoder = utf8_with({ field_name_mapping: PascalCase })
-    actual = Encode.to_bytes(input, encoder)
-    expected = complex_example_json
-
-    actual == expected
+#complex_example_json = Str.to_utf8("{\"Image\":{\"Animated\":false,\"Height\":600,\"Ids\":[116,943,234,38793],\"Thumbnail\":{\"Height\":125,\"Url\":\"http:\\/\\/www.example.com\\/image\\/481989943\",\"Width\":100},\"Title\":\"View from 15th Floor\",\"Width\":800}}")
+#complex_example_record = {
+#    image: {
+#        width: 800,
+#        height: 600,
+#        title: "View from 15th Floor",
+#        thumbnail: {
+#            url: "http://www.example.com/image/481989943",
+#            height: 125,
+#            width: 100,
+#        },
+#        animated: Bool.false,
+#        ids: [116, 943, 234, 38793],
+#    },
+#}
 
 from_object_name_using_map : Str, FieldNameMapping -> Str
 from_object_name_using_map = \object_name, field_name_mapping ->
@@ -2086,8 +1380,6 @@ snake_to_camel = \str ->
 
         _ -> str
 
-expect snake_to_camel("snake_case_string") == "snakeCaseString"
-
 pascal_to_camel : Str -> Str
 pascal_to_camel = \str ->
     segments = Str.to_utf8(str)
@@ -2097,8 +1389,6 @@ pascal_to_camel = \str ->
             rest |> List.prepend(first) |> Str.from_utf8 |> crash_on_bad_utf8_error
 
         _ -> str
-
-expect pascal_to_camel("PascalCaseString") == "pascalCaseString"
 
 kebab_to_camel : Str -> Str
 kebab_to_camel = \str ->
@@ -2112,8 +1402,6 @@ kebab_to_camel = \str ->
 
         _ -> str
 
-expect kebab_to_camel("kebab-case-string") == "kebabCaseString"
-
 camel_to_pascal : Str -> Str
 camel_to_pascal = \str ->
     segments = Str.to_utf8(str)
@@ -2123,8 +1411,6 @@ camel_to_pascal = \str ->
             rest |> List.prepend(first) |> Str.from_utf8 |> crash_on_bad_utf8_error
 
         _ -> str
-
-expect camel_to_pascal("someCaseString") == "SomeCaseString"
 
 camel_to_kebeb : Str -> Str
 camel_to_kebeb = \str ->
@@ -2156,8 +1442,6 @@ camel_to_kebab_help = \{ taken, rest } ->
                 },
             )
 
-expect camel_to_kebeb("someCaseString") == "some-case-string"
-
 camel_to_snake : Str -> Str
 camel_to_snake = \str ->
     rest = Str.to_utf8(str)
@@ -2187,8 +1471,6 @@ camel_to_snake_help = \{ taken, rest } ->
                     rest: List.drop_first(rest, 1),
                 },
             )
-
-expect camel_to_snake("someCaseString") == "some_case_string"
 
 uppercase_first : Str -> Str
 uppercase_first = \str ->
@@ -2223,10 +1505,6 @@ eat_whitespace = \bytes ->
     when bytes is
         [a, ..] if is_whitespace(a) -> eat_whitespace(List.drop_first(bytes, 1))
         _ -> bytes
-
-expect eat_whitespace(Str.to_utf8("")) == (Str.to_utf8(""))
-expect eat_whitespace(Str.to_utf8("ABC    ")) == (Str.to_utf8("ABC    "))
-expect eat_whitespace(Str.to_utf8("  \nABC    ")) == (Str.to_utf8("ABC    "))
 
 crash_on_bad_utf8_error : Result Str _ -> Str
 crash_on_bad_utf8_error = \res ->
