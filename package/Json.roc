@@ -660,7 +660,7 @@ expect
     actual = Str.to_utf8("12.34e-5") |> Decode.from_bytes_partial(utf8)
     num_str = actual.result |> Result.map(Num.to_str)
 
-    Result.with_default(num_str, "") == "0.00012339999375399202"
+    Result.with_default(num_str, "") == "0.0001234"
 
 decode_f64 = Decode.custom(\bytes, @Json({}) ->
     { taken, rest } = take_json_number(bytes)
