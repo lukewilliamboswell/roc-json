@@ -9,11 +9,8 @@ expect
     input : List U8
     input = Str.to_utf8("{\"first_segment\":\"ab\"}")
 
-    decoder : Json
-    decoder = utf8_with({ field_name_mapping: SnakeCase })
-
     actual : DecodeResult { first_segment : Str }
-    actual = Decode.from_bytes_partial(input, decoder)
+    actual = Decode.from_bytes_partial(input, @Json({}))
 
     expected : DecodeResult { first_segment : Str }
     expected = { rest: [], result: Ok({ first_segment: "ab" }) }
@@ -113,489 +110,106 @@ FieldNameMapping : [
     Custom (Str -> Str), # provide a custom formatting
 ]
 
-# TODO encode as JSON numbers as base 10 decimal digits
-# e.g. the REPL `Num.to_str(12e42f64)` gives
-# "12000000000000000000000000000000000000000000" : Str
-# which should be encoded as "12e42" : Str
-num_to_bytes = \n ->
-    n |> Num.to_str |> Str.to_utf8
-
-encode_u8 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_u16 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_u32 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_u64 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_u128 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_i8 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_i16 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_i32 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_i64 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_i128 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_f32 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_f64 = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_dec = \n ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, num_to_bytes(n)),
-    )
-
-encode_bool = \b ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            if b then
-                List.concat(bytes, Str.to_utf8("true"))
-            else
-                List.concat(bytes, Str.to_utf8("false")),
-    )
-
-encode_string = \str ->
-    Encode.custom(
-        \bytes, @Json({}) ->
-            List.concat(bytes, encode_str_bytes(str)),
-    )
-
-# TODO add support for unicode escapes (including 2,3,4 byte code points)
-# these should be encoded using a 12-byte sequence encoding the UTF-16 surrogate
-# pair. For example a string containing only G clef character U+1D11E is
-# represented as "\\uD834\\uDD1E" (note "\\" here is a single reverse solidus)
-encode_str_bytes = \str ->
-    bytes = Str.to_utf8(str)
-
-    initial_state = { byte_pos: 0, status: NoEscapesFound }
-
-    first_pass_state =
-        List.walk_until(
-            bytes,
-            initial_state,
-            \{ byte_pos, status }, b ->
-                when b is
-                    0x22 -> Break({ byte_pos, status: FoundEscape }) # U+0022 Quotation mark
-                    0x5c -> Break({ byte_pos, status: FoundEscape }) # U+005c Reverse solidus
-                    0x2f -> Break({ byte_pos, status: FoundEscape }) # U+002f Solidus
-                    0x08 -> Break({ byte_pos, status: FoundEscape }) # U+0008 Backspace
-                    0x0c -> Break({ byte_pos, status: FoundEscape }) # U+000c Form feed
-                    0x0a -> Break({ byte_pos, status: FoundEscape }) # U+000a Line feed
-                    0x0d -> Break({ byte_pos, status: FoundEscape }) # U+000d Carriage return
-                    0x09 -> Break({ byte_pos, status: FoundEscape }) # U+0009 Tab
-                    _ -> Continue({ byte_pos: byte_pos + 1, status }),
-        )
-
-    when first_pass_state.status is
-        NoEscapesFound ->
-            (List.len(bytes))
-            + 2
-            |> List.with_capacity
-            |> List.concat(['"'])
-            |> List.concat(bytes)
-            |> List.concat(['"'])
-
-        FoundEscape ->
-            { before: bytes_before_escape, others: bytes_with_escapes } =
-                List.split_at(bytes, first_pass_state.byte_pos)
-
-            # Reserve List with 120% capacity for escaped bytes to reduce
-            # allocations, include starting quote, and bytes up to first escape
-            initial =
-                List.len(bytes)
-                |> Num.mul(120)
-                |> Num.div_ceil(100)
-                |> List.with_capacity
-                |> List.concat(['"'])
-                |> List.concat(bytes_before_escape)
-
-            # Walk the remaining bytes and include escape '\' as required
-            # add closing quote
-            List.walk(
-                bytes_with_escapes,
-                initial,
-                \encoded_bytes, byte ->
-                    List.concat(encoded_bytes, escaped_byte_to_json(byte)),
-            )
-            |> List.concat(['"'])
-
-# Prepend an "\" escape byte
-escaped_byte_to_json : U8 -> List U8
-escaped_byte_to_json = \b ->
-    when b is
-        0x22 -> [0x5c, 0x22] # U+0022 Quotation mark
-        0x5c -> [0x5c, 0x5c] # U+005c Reverse solidus
-        0x2f -> [0x5c, 0x2f] # U+002f Solidus
-        0x08 -> [0x5c, 'b'] # U+0008 Backspace
-        0x0c -> [0x5c, 'f'] # U+000c Form feed
-        0x0a -> [0x5c, 'n'] # U+000a Line feed
-        0x0d -> [0x5c, 'r'] # U+000d Carriage return
-        0x09 -> [0x5c, 'r'] # U+0009 Tab
-        _ -> [b]
-
-encode_list = \lst, encode_elem ->
-    Encode.custom(
-        \bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
-            write_list = \{ buffer, elems_left }, elem ->
-                before_buffer_len = buffer |> List.len
-
-                buffer_with_elem =
-                    elem_bytes =
-                        Encode.append_with([], encode_elem(elem), @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }))
-                        |> empty_to_null(empty_encode_as_null.list)
-                    buffer |> List.concat(elem_bytes)
-
-                # If our encoder returned [] we just skip the elem
-                empty_encode = buffer_with_elem |> List.len == before_buffer_len
-                if empty_encode then
-                    { buffer: buffer_with_elem, elems_left: elems_left - 1 }
-                else
-                    buffer_with_suffix =
-                        if elems_left > 1 then
-                            List.append(buffer_with_elem, Num.to_u8(','))
-                        else
-                            buffer_with_elem
-
-                    { buffer: buffer_with_suffix, elems_left: elems_left - 1 }
-
-            head = List.append(bytes, Num.to_u8('['))
-            { buffer: with_list } = List.walk(lst, { buffer: head, elems_left: List.len(lst) }, write_list)
-
-            List.append(with_list, Num.to_u8(']')),
-    )
-
-encode_record = \fields ->
-    Encode.custom(
-        \bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
-            write_record = \{ buffer, fields_left }, { key, value } ->
-
-                field_value =
-                    []
-                    |> Encode.append_with(value, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }))
-                    |> empty_to_null(empty_encode_as_null.record)
-
-                # If our encoder returned [] we just skip the field
-
-                empty_encode = field_value == []
-                if empty_encode then
-                    { buffer, fields_left: fields_left - 1 }
-                else
-                    field_name = to_object_name_using_map(key, field_name_mapping)
-                    buffer_with_key_value =
-                        List.append(buffer, Num.to_u8('"'))
-                        |> List.concat(Str.to_utf8(field_name))
-                        |> List.append(Num.to_u8('"'))
-                        |> List.append(Num.to_u8(':')) # Note we need to encode using the json config here
-                        |> List.concat(field_value)
-
-                    buffer_with_suffix =
-                        if fields_left > 1 then
-                            List.append(buffer_with_key_value, Num.to_u8(','))
-                        else
-                            buffer_with_key_value
-
-                    { buffer: buffer_with_suffix, fields_left: fields_left - 1 }
-
-            bytes_head = List.append(bytes, Num.to_u8('{'))
-            { buffer: bytes_with_record } = List.walk(fields, { buffer: bytes_head, fields_left: List.len(fields) }, write_record)
-
-            List.append(bytes_with_record, Num.to_u8('}')),
-    )
-
-#to_yelling_case = \str ->
-#    Str.to_utf8(str)
-#    |> List.map(to_uppercase)
-#    |> Str.from_utf8
-#    |> crash_on_bad_utf8_error
-
-encode_tuple = \elems ->
-    Encode.custom(
-        \bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
-            write_tuple = \{ buffer, elems_left }, elem_encoder ->
-                before_buffer_len = buffer |> List.len
-
-                buffer_with_elem =
-                    elem_bytes =
-                        Encode.append_with([], elem_encoder, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }))
-                        |> empty_to_null(empty_encode_as_null.tuple)
-                    buffer |> List.concat(elem_bytes)
-                # If our encoder returned [] we just skip the elem
-                empty_encode = buffer_with_elem |> List.len == before_buffer_len
-                if empty_encode then
-                    { buffer: buffer_with_elem, elems_left: elems_left - 1 }
-                else
-                    buffer_with_suffix =
-                        if elems_left > 1 then
-                            List.append(buffer_with_elem, Num.to_u8(','))
-                        else
-                            buffer_with_elem
-
-                    { buffer: buffer_with_suffix, elems_left: elems_left - 1 }
-
-            bytes_head = List.append(bytes, Num.to_u8('['))
-            { buffer: bytes_with_record } = List.walk(elems, { buffer: bytes_head, elems_left: List.len(elems) }, write_tuple)
-
-            List.append(bytes_with_record, Num.to_u8(']')),
-    )
-
-encode_tag = \name, payload ->
-    Encode.custom(
-        \bytes, @Json(json_fmt) ->
-            # Idea: encode `A v1 v2` as `{"A": [v1, v2]}`
-            write_payload = \{ buffer, items_left }, encoder ->
-                buffer_with_value = Encode.append_with(buffer, encoder, @Json(json_fmt))
-                buffer_with_suffix =
-                    if items_left > 1 then
-                        List.append(buffer_with_value, Num.to_u8(','))
-                    else
-                        buffer_with_value
-
-                { buffer: buffer_with_suffix, items_left: items_left - 1 }
-
-            bytes_head =
-                List.append(bytes, Num.to_u8('{'))
-                |> List.append(Num.to_u8('"'))
-                |> List.concat(Str.to_utf8(name))
-                |> List.append(Num.to_u8('"'))
-                |> List.append(Num.to_u8(':'))
-                |> List.append(Num.to_u8('['))
-
-            { buffer: bytes_with_payload } = List.walk(payload, { buffer: bytes_head, items_left: List.len(payload) }, write_payload)
-
-            List.append(bytes_with_payload, Num.to_u8(']'))
-            |> List.append(Num.to_u8('}')),
-    )
-
-decode_u8 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_u8)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_u16 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_u16)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_u32 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_u32)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_u64 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_u64)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_u128 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_u128)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_i8 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_i8)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_i16 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_i16)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_i32 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_i32)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_i64 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_i64)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_i128 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_i128)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_f32 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_f32)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_f64 = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_f64)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_dec = Decode.custom(
-    \bytes, @Json({}) ->
-        { taken, rest } = take_json_number(bytes)
-
-        result =
-            taken
-            |> Str.from_utf8
-            |> Result.try(Str.to_dec)
-            |> Result.map_err(\_ -> TooShort)
-
-        { result, rest },
-)
-
-decode_bool = Decode.custom(
-    \bytes, @Json({}) ->
-        when bytes is
-            ['f', 'a', 'l', 's', 'e', ..] -> { result: Ok(Bool.false), rest: List.drop_first(bytes, 5) }
-            ['t', 'r', 'u', 'e', ..] -> { result: Ok(Bool.true), rest: List.drop_first(bytes, 4) }
-            _ -> { result: Err(TooShort), rest: bytes },
-)
+encode_u8 : U8 -> Encoder Json
+encode_u8 = \_ -> Encode.custom(\bytes, _ -> bytes)
 
+encode_u16 : U16 -> Encoder Json
+encode_u16 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_u32 : U32 -> Encoder Json
+encode_u32 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_u64 : U64 -> Encoder Json
+encode_u64 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_u128 : U128 -> Encoder Json
+encode_u128 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_i8 : I8 -> Encoder Json
+encode_i8 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_i16 : I16 -> Encoder Json
+encode_i16 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_i32 : I32 -> Encoder Json
+encode_i32 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_i64 : I64 -> Encoder Json
+encode_i64 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_i128 : I128 -> Encoder Json
+encode_i128 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_f32 : F32 -> Encoder Json
+encode_f32 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_f64 : F64 -> Encoder Json
+encode_f64 = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_dec : Dec -> Encoder Json
+encode_dec = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_bool : Bool -> Encoder Json
+encode_bool = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_string : Str -> Encoder Json
+encode_string = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_list : List elem, (elem -> Encoder Json) -> Encoder Json
+encode_list = \_, _ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_record : List { key : Str, value : Encoder Json } -> Encoder Json
+encode_record = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_tuple : List (Encoder Json) -> Encoder Json
+encode_tuple = \_ -> Encode.custom(\bytes, _ -> bytes)
+
+encode_tag : Str, List (Encoder Json) -> Encoder Json
+encode_tag = \_, _ -> Encode.custom(\bytes, _ -> bytes)
+
+decode_u8 : Decoder U8 Json
+decode_u8 = Decode.custom(\bytes, _ -> { result: Ok(1u8), rest: bytes })
+
+decode_u16 : Decoder U16 Json
+decode_u16 = Decode.custom(\bytes, _ -> { result: Ok(1u16), rest: bytes })
+
+decode_u32 : Decoder U32 Json
+decode_u32 = Decode.custom(\bytes, _ -> { result: Ok(1u32), rest: bytes })
+
+decode_u64 : Decoder U64 Json
+decode_u64 = Decode.custom(\bytes, _ -> { result: Ok(1u64), rest: bytes })
+
+decode_u128 : Decoder U128 Json
+decode_u128 = Decode.custom(\bytes, _ -> { result: Ok(1u128), rest: bytes })
+
+decode_i8 : Decoder I8 Json
+decode_i8 = Decode.custom(\bytes, _ -> { result: Ok(1i8), rest: bytes })
+
+decode_i16 : Decoder I16 Json
+decode_i16 = Decode.custom(\bytes, _ -> { result: Ok(1i16), rest: bytes })
+
+decode_i32 : Decoder I32 Json
+decode_i32 = Decode.custom(\bytes, _ -> { result: Ok(1i32), rest: bytes })
+
+decode_i64 : Decoder I64 Json
+decode_i64 = Decode.custom(\bytes, _ -> { result: Ok(1i64), rest: bytes })
+
+decode_i128 : Decoder I128 Json
+decode_i128 = Decode.custom(\bytes, _ -> { result: Ok(1i128), rest: bytes })
+
+decode_f32 : Decoder F32 Json
+decode_f32 = Decode.custom(\bytes, _ -> { result: Ok(1f32), rest: bytes })
+
+decode_f64 : Decoder F64 Json
+decode_f64 = Decode.custom(\bytes, _ -> { result: Ok(1f64), rest: bytes })
+
+decode_dec : Decoder Dec Json
+decode_dec = Decode.custom(\bytes, _ -> { result: Ok(1dec), rest: bytes })
+
+decode_bool : Decoder Bool Json
+decode_bool = Decode.custom(\bytes, _ -> { result: Ok(Bool.true), rest: bytes })
+
+decode_tuple : state, (state, U64 -> [Next (Decoder state fmt), TooLong]), (state -> Result val DecodeError) -> Decoder val fmt
 decode_tuple = \initial_state, step_elem, finalizer ->
     Decode.custom(
         \initial_bytes, json_fmt ->
@@ -871,8 +485,8 @@ json_hex_to_decimal = \b ->
     else
         crash("got an invalid hex char")
 
-#decimal_hex_to_byte : U8, U8 -> U8
-#decimal_hex_to_byte = \upper, lower ->
+# decimal_hex_to_byte : U8, U8 -> U8
+# decimal_hex_to_byte = \upper, lower ->
 #    Num.bitwise_or(Num.shift_left_by(upper, 4), lower)
 
 hex_to_utf8 : U8, U8, U8, U8 -> List U8
@@ -1291,15 +905,15 @@ ObjectState : [
     InvalidObject,
 ]
 
-#from_yelling_case = \str ->
+# from_yelling_case = \str ->
 #    Str.to_utf8(str)
 #    |> List.map(to_lowercase)
 #    |> Str.from_utf8
 #    |> crash_on_bad_utf8_error
 
 # Complex example from IETF RFC 8259 (2017)
-#complex_example_json = Str.to_utf8("{\"Image\":{\"Animated\":false,\"Height\":600,\"Ids\":[116,943,234,38793],\"Thumbnail\":{\"Height\":125,\"Url\":\"http:\\/\\/www.example.com\\/image\\/481989943\",\"Width\":100},\"Title\":\"View from 15th Floor\",\"Width\":800}}")
-#complex_example_record = {
+# complex_example_json = Str.to_utf8("{\"Image\":{\"Animated\":false,\"Height\":600,\"Ids\":[116,943,234,38793],\"Thumbnail\":{\"Height\":125,\"Url\":\"http:\\/\\/www.example.com\\/image\\/481989943\",\"Width\":100},\"Title\":\"View from 15th Floor\",\"Width\":800}}")
+# complex_example_record = {
 #    image: {
 #        width: 800,
 #        height: 600,
@@ -1312,7 +926,7 @@ ObjectState : [
 #        animated: Bool.false,
 #        ids: [116, 943, 234, 38793],
 #    },
-#}
+# }
 
 from_object_name_using_map : Str, FieldNameMapping -> Str
 from_object_name_using_map = \object_name, field_name_mapping ->
