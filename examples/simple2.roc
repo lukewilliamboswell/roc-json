@@ -19,7 +19,7 @@ main! = \_args ->
             try Stdout.line!("Successfully decoded list")
 
             when List.get(list, 0) is
-                Ok(rec) -> Stdout.line!("Name of first person is: $(rec.lastname)")
+                Ok(rec) -> Stdout.line!("Name of first person is: ${rec.lastname}")
                 Err(_) -> Stdout.line!("Error occurred in List.get")
 
         Err(TooShort) -> Stdout.line!("A TooShort error occurred")

@@ -41,20 +41,24 @@ from = \val -> @OptionOrNull(val)
 null_chars = "null" |> Str.to_utf8
 
 to_encoder_res = \@OptionOrNull(val) ->
-    Encode.custom(\bytes, fmt ->
-        when val is
-            Some(contents) -> bytes |> Encode.append(contents, fmt)
-            None -> bytes
-            Null -> bytes |> List.concat(null_chars))
+    Encode.custom(
+        \bytes, fmt ->
+            when val is
+                Some(contents) -> bytes |> Encode.append(contents, fmt)
+                None -> bytes
+                Null -> bytes |> List.concat(null_chars),
+    )
 
-decoder_res = Decode.custom(\bytes, fmt ->
-    when bytes is
-        [] -> { result: Ok(none({})), rest: [] }
-        ['n', 'u', 'l', 'l', .. as rest] -> { result: Ok(null({})), rest: rest }
-        _ ->
-            when bytes |> Decode.decode_with(Decode.decoder, fmt) is
-                { result: Ok(res), rest } -> { result: Ok(some(res)), rest }
-                { result: Err(a), rest } -> { result: Err(a), rest })
+decoder_res = Decode.custom(
+    \bytes, fmt ->
+        when bytes is
+            [] -> { result: Ok(none({})), rest: [] }
+            ['n', 'u', 'l', 'l', .. as rest] -> { result: Ok(null({})), rest: rest }
+            _ ->
+                when bytes |> Decode.decode_with(Decode.decoder, fmt) is
+                    { result: Ok(res), rest } -> { result: Ok(some(res)), rest }
+                    { result: Err(a), rest } -> { result: Err(a), rest },
+)
 
 ## Used to indicate to roc highlighting that a string is json
 json = \a -> a

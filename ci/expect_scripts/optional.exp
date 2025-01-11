@@ -8,7 +8,7 @@ set timeout 7
 spawn ./examples/optional
 
 
-expect "{\"firstName\":\"Luke\",}\r\n{\"firstName\":\"Luke\",\"lastName\":null}\r\n{\"firstName\":\"Luke\",\"lastName\":null}\r\n{\"firstName\":\"Luke\",\"lastName\":\"Boswell\"}" {
+expect "{\"first_name\":\"Luke\",}\r\n{\"first_name\":\"Luke\",\"last_name\":null}\r\n{\"first_name\":\"Luke\",\"last_name\":null}\r\n{\"first_name\":\"Luke\",\"last_name\":\"Boswell\"}" {
     expect eof
     exit 0
 }

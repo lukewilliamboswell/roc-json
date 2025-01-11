@@ -16,10 +16,12 @@ none = \{} -> @Option(None)
 some = \a -> @Option(Some(a))
 
 option_to_encode = \@Option(val) ->
-    Encode.custom(\bytes, fmt ->
-        when val is
-            Some(contents) -> bytes |> Encode.append(contents, fmt)
-            None -> bytes)
+    Encode.custom(
+        \bytes, fmt ->
+            when val is
+                Some(contents) -> bytes |> Encode.append(contents, fmt)
+                None -> bytes,
+    )
 
 # Encode Option none
 expect
@@ -106,13 +108,15 @@ expect
     expected = Ok("[1,null,2,3]")
     expected == encoded
 
-option_decode = Decode.custom(\bytes, fmt ->
-    if bytes |> List.len == 0 then
-        { result: Ok(@Option(None)), rest: [] }
-    else
-        when bytes |> Decode.decode_with(Decode.decoder, fmt) is
-            { result: Ok(res), rest } -> { result: Ok(@Option(Some(res))), rest }
-            { result: Err(a), rest } -> { result: Err(a), rest })
+option_decode = Decode.custom(
+    \bytes, fmt ->
+        if bytes |> List.len == 0 then
+            { result: Ok(@Option(None)), rest: [] }
+        else
+            when bytes |> Decode.decode_with(Decode.decoder, fmt) is
+                { result: Ok(res), rest } -> { result: Ok(@Option(Some(res))), rest }
+                { result: Err(a), rest } -> { result: Err(a), rest },
+)
 
 # Now I can try to modify the json decoding to try decoding every type with a zero byte buffer and see if that will decode my field
 OptionTest : { y : U8, maybe : Option U8 }

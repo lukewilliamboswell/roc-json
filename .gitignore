@@ -2,7 +2,7 @@ examples/optional
 examples/simple1
 examples/simple2
 examples/tuple
-examples/http-json-get
+examples/http-get-json
 
 .DS_Store
 

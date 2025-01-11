@@ -16,7 +16,7 @@ main! = \_args ->
     decoded = Decode.from_bytes_partial(request_body, decoder)
 
     when decoded.result is
-        Ok(record) -> Stdout.line!("Successfully decoded image, title:\"$(record.image.title)\"")
+        Ok(record) -> Stdout.line!("Successfully decoded image, title:\"${record.image.title}\"")
         Err(_) -> crash("Error, failed to decode image")
 
 ImageRequest : {

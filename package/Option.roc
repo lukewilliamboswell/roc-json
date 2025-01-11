@@ -30,18 +30,22 @@ from_result = \val ->
         Err(_) -> none({})
 
 to_encoder_res = \@Option(val) ->
-    Encode.custom(\bytes, fmt ->
-        when val is
-            Some(contents) -> bytes |> Encode.append(contents, fmt)
-            None -> bytes)
+    Encode.custom(
+        \bytes, fmt ->
+            when val is
+                Some(contents) -> bytes |> Encode.append(contents, fmt)
+                None -> bytes,
+    )
 
-decoder_res = Decode.custom(\bytes, fmt ->
-    when bytes is
-        [] -> { result: Ok(none({})), rest: [] }
-        _ ->
-            when bytes |> Decode.decode_with(Decode.decoder, fmt) is
-                { result: Ok(res), rest } -> { result: Ok(some(res)), rest }
-                { result: Err(a), rest } -> { result: Err(a), rest })
+decoder_res = Decode.custom(
+    \bytes, fmt ->
+        when bytes is
+            [] -> { result: Ok(none({})), rest: [] }
+            _ ->
+                when bytes |> Decode.decode_with(Decode.decoder, fmt) is
+                    { result: Ok(res), rest } -> { result: Ok(some(res)), rest }
+                    { result: Err(a), rest } -> { result: Err(a), rest },
+)
 
 ## Used to indicate to roc highlighting that a string is json
 json = \a -> a

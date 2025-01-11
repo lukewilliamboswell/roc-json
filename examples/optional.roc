@@ -18,19 +18,19 @@ main! = \_args ->
     some_obj : Object
     some_obj = { first_name: "Luke", last_name: OptionOrNull.some("Boswell") }
 
-    # noneJson == {"firstName":"Luke",}
+    # noneJson == {"first_name":"Luke",}
     none_json = Encode.to_bytes(none_obj, Json.utf8_with({ empty_encode_as_null: Json.encode_as_null_option({ record: Bool.false }) }))
     try Stdout.line!((none_json |> Str.from_utf8 |> Result.with_default("Failed to encode JSON")))
 
-    # nullNoneJson == {"firstName":"Luke","lastName":null}
+    # nullNoneJson == {"first_name":"Luke","last_name":null}
     null_none_json = Encode.to_bytes(none_obj, Json.utf8_with({ empty_encode_as_null: Json.encode_as_null_option({ record: Bool.true }) }))
     try Stdout.line!((null_none_json |> Str.from_utf8 |> Result.with_default("Failed to encode JSON")))
 
-    # nullJson == {"firstName":"Luke","lastName":null}
+    # nullJson == {"first_name":"Luke","last_name":null}
     null_json = Encode.to_bytes(null_obj, Json.utf8)
     try Stdout.line!((null_json |> Str.from_utf8 |> Result.with_default("Failed to encode JSON")))
 
-    # someJson == {"firstName":"Luke","lastName":"Boswell"}
+    # someJson == {"first_name":"Luke","last_name":"Boswell"}
     some_json = Encode.to_bytes(some_obj, Json.utf8)
     try Stdout.line!((some_json |> Str.from_utf8 |> Result.with_default("Failed to encode JSON")))
 
