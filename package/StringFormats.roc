@@ -1,3 +1,4 @@
+## Convert between various ASCII string formats.
 ## `PascalCase`
 ## `snake_case`
 ## `camelCase`
@@ -6,6 +7,8 @@ module [
     StringFormat,
     convert,
 ]
+
+import CamelSplitter exposing [split_camel, split_pascal]
 
 StringFormat : [
     SnakeCase,
@@ -23,10 +26,10 @@ convert = \str, config ->
             (SnakeCase, PascalCase) -> Ok (snake_to_pascal str)
             (SnakeCase, KebabCase) -> Ok (snake_to_kebab str)
             (SnakeCase, CamelCase) -> Ok (snake_to_camel str)
-            (PascalCase, SnakeCase) -> Ok (pascal_to_snake str)
             (KebabCase, SnakeCase) -> Ok (kebab_to_snake str)
             (KebabCase, CamelCase) -> Ok (kebab_to_camel str)
             (KebabCase, PascalCase) -> Ok (kebab_to_pascal str)
+            (PascalCase, SnakeCase) -> pascal_to_snake str |> Result.map_err \_ -> NotASCII
             (PascalCase, CamelCase) -> pascal_to_camel str |> Result.map_err \_ -> NotASCII
             (PascalCase, KebabCase) -> pascal_to_kebab str |> Result.map_err \_ -> NotASCII
             (CamelCase, SnakeCase) -> camel_to_snake str |> Result.map_err \_ -> NotASCII
@@ -50,74 +53,35 @@ expect convert "foo-bar-string" { from: KebabCase, to: CamelCase } == Ok "fooBar
 expect convert "foo-bar-string" { from: KebabCase, to: PascalCase } == Ok "FooBarString"
 
 expect convert "foo" { from: SnakeCase, to: PascalCase } == Ok "Foo"
-expect convert "Foo" { from: PascalCase, to: SnakeCase } == Ok "foo"
-expect convert "foo" { from: KebabCase, to: CamelCase } == Ok "foo"
-
-# FAILING
-# expect convert "FOOBarBAZ" { from: PascalCase, to: SnakeCase } == Ok "foo_bar_baz"
-
-# FAILING
-# expect convert "FOOBarBAZ" { from: PascalCase, to: KebabCase } == Ok "foo-bar-baz"
-
-# FAILING
-# expect convert "foo123bar" { from: SnakeCase, to: PascalCase } == Ok "Foo123Bar"
-
+expect convert "foo123bar" { from: SnakeCase, to: PascalCase } == Ok "Foo123bar"
 expect convert "foo_123_bar" { from: SnakeCase, to: CamelCase } == Ok "foo123Bar"
-expect convert "foo-123-bar" { from: KebabCase, to: PascalCase } == Ok "Foo123Bar"
-
 expect convert "" { from: SnakeCase, to: PascalCase } == Ok ""
-expect convert "" { from: PascalCase, to: KebabCase } == Ok ""
-
 expect convert "foo__bar" { from: SnakeCase, to: PascalCase } == Ok "FooBar"
+expect convert "straße" { from: SnakeCase, to: PascalCase } == Err NotASCII
+
+expect convert "Foo" { from: PascalCase, to: SnakeCase } == Ok "foo"
+expect convert "FOOBarBAZ" { from: PascalCase, to: SnakeCase } == Ok "foo_bar_baz"
+expect convert "FOOBarBAZ" { from: PascalCase, to: KebabCase } == Ok "foo-bar-baz"
+expect convert "" { from: PascalCase, to: KebabCase } == Ok ""
+expect convert "FOOBar" { from: PascalCase, to: KebabCase } == Ok "foo-bar"
+
+expect convert "foo" { from: KebabCase, to: CamelCase } == Ok "foo"
+expect convert "foo-123-bar" { from: KebabCase, to: PascalCase } == Ok "Foo123Bar"
 expect convert "foo--bar" { from: KebabCase, to: CamelCase } == Ok "fooBar"
 
-# FAILING
-# expect convert "fooBAR" { from: CamelCase, to: SnakeCase } == Ok "foo_bar"
-
-# FAILING
-# expect convert "FOOBar" { from: PascalCase, to: KebabCase } == Ok "foo-bar"
-
-# Test non-ASCII should return Err
 expect convert "föoBar" { from: CamelCase, to: SnakeCase } == Err NotASCII
-expect convert "straße" { from: SnakeCase, to: PascalCase } == Err NotASCII
+expect convert "fooBAR" { from: CamelCase, to: SnakeCase } == Ok "foo_bar"
 
 pascal_to_kebab : Str -> Result Str _
 pascal_to_kebab = \str ->
-    rest = Str.to_utf8(str)
-    taken = List.with_capacity(List.len(rest))
 
-    when rest is
-        [first, .. as remainder] ->
-            { taken: finalTaken, rest: _ } =
-                pascal_to_kebab_help(
-                    {
-                        taken: List.append(taken, to_lowercase(first)),
-                        rest: remainder,
-                    },
-                )
-            Str.from_utf8(finalTaken)
+    segments : List Str
+    segments = split_pascal(str)?
 
-        _ -> Ok str
-
-pascal_to_kebab_help : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
-pascal_to_kebab_help = \{ taken, rest } ->
-    when rest is
-        [] -> { taken, rest }
-        [a, ..] if is_upper_case(a) ->
-            pascal_to_kebab_help(
-                {
-                    taken: List.concat(taken, ['-', to_lowercase(a)]),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-
-        [a, ..] ->
-            pascal_to_kebab_help(
-                {
-                    taken: List.append(taken, a),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
+    segments
+    |> lowercase_all_str
+    |> Str.join_with("-")
+    |> Ok
 
 kebab_to_pascal : Str -> Str
 kebab_to_pascal = \str ->
@@ -125,51 +89,16 @@ kebab_to_pascal = \str ->
     |> List.keep_oks uppercase_first_ascii
     |> Str.join_with("")
 
-pascal_to_snake : Str -> Str
+pascal_to_snake : Str -> Result Str _
 pascal_to_snake = \str ->
-    rest = Str.to_utf8(str)
-    taken = List.with_capacity(List.len(rest))
 
-    when rest is
-        [first, .. as remainder] ->
-            { taken: finalTaken, rest: _ } =
-                pascal_to_snake_help(
-                    {
-                        taken: List.append(taken, to_lowercase(first)),
-                        rest: remainder,
-                    },
-                )
-            Str.from_utf8(finalTaken)
-            |> Result.with_default(str)
+    segments : List Str
+    segments = split_pascal(str)?
 
-        _ -> str
-
-pascal_to_snake_help : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
-pascal_to_snake_help = \{ taken, rest } ->
-    when rest is
-        [] -> { taken, rest }
-        [a, b, ..] if is_upper_case(a) && is_upper_case(b) ->
-            # Handle consecutive uppercase letters
-            pascal_to_snake_help(
-                {
-                    taken: List.append(taken, to_lowercase(a)),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-        [a, ..] if is_upper_case(a) ->
-            pascal_to_snake_help(
-                {
-                    taken: List.concat(taken, ['_', to_lowercase(a)]),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-        [a, ..] ->
-            pascal_to_snake_help(
-                {
-                    taken: List.append(taken, a),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
+    segments
+    |> lowercase_all_str
+    |> Str.join_with("_")
+    |> Ok
 
 snake_to_camel : Str -> Str
 snake_to_camel = \str ->
@@ -199,7 +128,11 @@ snake_to_pascal = \str ->
 pascal_to_camel : Str -> Result Str _
 pascal_to_camel = \str ->
     when Str.to_utf8(str) is
-        [first, .. as rest] -> List.prepend(rest, to_lowercase(first)) |> Str.from_utf8
+        [first, .. as rest] ->
+            rest
+            |> List.prepend(to_lowercase(first))
+            |> Str.from_utf8
+
         _ -> Ok str
 
 kebab_to_camel : Str -> Str
@@ -224,61 +157,24 @@ camel_to_pascal = \str ->
 
 camel_to_kebeb : Str -> Result Str _
 camel_to_kebeb = \str ->
-    rest = Str.to_utf8(str)
-    taken = List.with_capacity(List.len(rest))
 
-    camel_to_kebab_help({ taken, rest })
-    |> .taken
-    |> Str.from_utf8
+    segments : List Str
+    segments = split_camel(str)?
 
-camel_to_kebab_help : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
-camel_to_kebab_help = \{ taken, rest } ->
-    when rest is
-        [] -> { taken, rest }
-        [a, ..] if is_upper_case(a) ->
-            camel_to_kebab_help(
-                {
-                    taken: List.concat(taken, ['-', to_lowercase(a)]),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-
-        [a, ..] ->
-            camel_to_kebab_help(
-                {
-                    taken: List.append(taken, a),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
+    segments
+    |> lowercase_all_str
+    |> Str.join_with("-")
+    |> Ok
 
 camel_to_snake : Str -> Result Str _
 camel_to_snake = \str ->
-    rest = Str.to_utf8(str)
-    taken = List.with_capacity(List.len(rest))
+    segments : List Str
+    segments = split_camel(str)?
 
-    camel_to_snake_help({ taken, rest })
-    |> .taken
-    |> Str.from_utf8
-
-camel_to_snake_help : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
-camel_to_snake_help = \{ taken, rest } ->
-    when rest is
-        [] -> { taken, rest }
-        [a, ..] if is_upper_case(a) ->
-            camel_to_snake_help(
-                {
-                    taken: List.concat(taken, ['_', to_lowercase(a)]),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-
-        [a, ..] ->
-            camel_to_snake_help(
-                {
-                    taken: List.append(taken, a),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
+    segments
+    |> lowercase_all_str
+    |> Str.join_with("_")
+    |> Ok
 
 uppercase_first_ascii : Str -> Result Str _
 uppercase_first_ascii = \str ->
@@ -287,19 +183,26 @@ uppercase_first_ascii = \str ->
         _ -> Ok str
 
 to_uppercase : U8 -> U8
-to_uppercase = \codeunit ->
-    if 'a' <= codeunit && codeunit <= 'z' then
-        codeunit - (32) # 32 is the difference to the respecive uppercase letters
+to_uppercase = \byte ->
+    if 'a' <= byte && byte <= 'z' then
+        # 32 is the difference to the respecive uppercase letters
+        byte - (32)
     else
-        codeunit
+        byte
+
+lowercase_all_str : List Str -> List Str
+lowercase_all_str = \strs ->
+    List.keep_oks(
+        strs,
+        \str ->
+            bytes = Str.to_utf8 str
+            Str.from_utf8(List.map(bytes, to_lowercase)),
+    )
 
 to_lowercase : U8 -> U8
-to_lowercase = \codeunit ->
-    if 'A' <= codeunit && codeunit <= 'Z' then
-        codeunit + 32 # 32 is the difference to the respecive lowercase letters
+to_lowercase = \byte ->
+    if 'A' <= byte && byte <= 'Z' then
+        # 32 is the difference to the respecive lowercase letters
+        byte + 32
     else
-        codeunit
-
-is_upper_case : U8 -> Bool
-is_upper_case = \codeunit ->
-    'A' <= codeunit && codeunit <= 'Z'
+        byte
