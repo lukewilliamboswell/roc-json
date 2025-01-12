@@ -16,7 +16,7 @@ main! = \_args ->
 
     when decoded.result is
         Ok(list) ->
-            try Stdout.line!("Successfully decoded list")
+            try(Stdout.line!("Successfully decoded list"))
 
             when List.get(list, 0) is
                 Ok(rec) -> Stdout.line!("Name of first person is: ${rec.lastname}")

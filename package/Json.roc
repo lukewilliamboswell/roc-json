@@ -37,6 +37,8 @@ module [
     encode_as_null_option,
 ]
 
+import StringFormat exposing [convert_case]
+
 ## An opaque type with the `Encode.EncoderFormatting` and
 ## `DecoderFormatting` abilities.
 Json := { field_name_mapping : FieldNameMapping, skip_missing_properties : Bool, null_decode_as_empty : Bool, empty_encode_as_null : EncodeAsNull }
@@ -127,7 +129,7 @@ FieldNameMapping : [
     PascalCase, # PascalCase
     KebabCase, # kabab-case
     CamelCase, # camelCase
-    Custom (Str -> Str), # provide a custom formatting
+    Custom (Str -> Result Str Str), # provide a custom formatting
 ]
 
 # TODO encode as JSON numbers as base 10 decimal digits
@@ -396,6 +398,7 @@ encode_record = \fields ->
                     { buffer, fields_left: fields_left - 1 }
                 else
                     field_name = to_object_name_using_map(key, field_name_mapping)
+
                     buffer_with_key_value =
                         List.append(buffer, Num.to_u8('"'))
                         |> List.concat(Str.to_utf8(field_name))
@@ -1616,8 +1619,7 @@ decode_record = \initial_state, step_field, finalizer ->
 
                     Ok(object_name) ->
                         decode_attempt =
-                            field_name =
-                                from_object_name_using_map(object_name, field_name_mapping)
+                            field_name = from_object_name_using_map(object_name, field_name_mapping)
 
                             # Retrieve value decoder for the current field
                             when (step_field(record_state, field_name), skip_missing_properties) is
@@ -1977,11 +1979,12 @@ expect
 
     actual.result == expected
 
+from_yelling_case : Str -> Result Str Str
 from_yelling_case = \str ->
     Str.to_utf8(str)
     |> List.map(to_lowercase)
     |> Str.from_utf8
-    |> crash_on_bad_utf8_error
+    |> Result.map_err(\_ -> "INVALID UTF8")
 
 expect from_yelling_case("YELLING") == "yelling"
 
@@ -2020,185 +2023,33 @@ expect
 
     actual == expected
 
+# e.g. convert a `PascalCase` JSON Object name to a `snake_case` Roc Field name
 from_object_name_using_map : Str, FieldNameMapping -> Str
 from_object_name_using_map = \object_name, field_name_mapping ->
-    when field_name_mapping is
-        Default -> object_name
-        SnakeCase -> from_snake_case(object_name)
-        PascalCase -> from_pascal_case(object_name)
-        KebabCase -> from_kebab_case(object_name)
-        CamelCase -> from_camel_case(object_name)
-        Custom(transformation) -> transformation(object_name)
+    (
+        when field_name_mapping is
+            Default -> convert_case(object_name, { from: SnakeCase, to: SnakeCase })
+            SnakeCase -> convert_case(object_name, { from: SnakeCase, to: SnakeCase })
+            PascalCase -> convert_case(object_name, { from: PascalCase, to: SnakeCase })
+            KebabCase -> convert_case(object_name, { from: KebabCase, to: SnakeCase })
+            CamelCase -> convert_case(object_name, { from: CamelCase, to: SnakeCase })
+            Custom(transformation) -> transformation(object_name) |> Result.map_err(CustomError)
+    )
+    |> Result.with_default("")
 
+# e.g. convert a `snake_case` Roc Field name to a `camelCase` JSON Object name
 to_object_name_using_map : Str, FieldNameMapping -> Str
 to_object_name_using_map = \field_name, field_name_mapping ->
-    when field_name_mapping is
-        Default -> field_name
-        SnakeCase -> to_snake_case(field_name)
-        PascalCase -> to_pascal_case(field_name)
-        KebabCase -> to_kebab_case(field_name)
-        CamelCase -> to_camel_case(field_name)
-        Custom(transformation) -> transformation(field_name)
-
-# Convert a `snake_case` JSON Object name to a Roc Field name
-from_snake_case = \str ->
-    snake_to_camel(str)
-
-# Convert a `PascalCase` JSON Object name to a Roc Field name
-from_pascal_case = \str ->
-    pascal_to_camel(str)
-
-# Convert a `kabab-case` JSON Object name to a Roc Field name
-from_kebab_case = \str ->
-    kebab_to_camel(str)
-
-# Convert a `camelCase` JSON Object name to a Roc Field name
-from_camel_case = \str ->
-    # Nothing to change as Roc field names are camelCase by default
-    str
-
-# Convert a `camelCase` Roc Field name to a `snake_case` JSON Object name
-to_snake_case = \str ->
-    camel_to_snake(str)
-
-# Convert a `camelCase` Roc Field name to a `PascalCase` JSON Object name
-to_pascal_case = \str ->
-    camel_to_pascal(str)
-
-# Convert a `camelCase` Roc Field name to a `kabab-case` JSON Object name
-to_kebab_case = \str ->
-    camel_to_kebeb(str)
-
-# Convert a `camelCase` Roc Field name to a `camelCase` JSON Object name
-to_camel_case = \str ->
-    # Nothing to change as Roc field names are camelCase by default
-    str
-
-snake_to_camel : Str -> Str
-snake_to_camel = \str ->
-    segments = Str.split_on(str, "_")
-    when segments is
-        [first, .. as rest] ->
-            rest
-            |> List.map(uppercase_first)
-            |> List.prepend(first)
-            |> Str.join_with("")
-
-        _ -> str
-
-expect snake_to_camel("snake_case_string") == "snakeCaseString"
-
-pascal_to_camel : Str -> Str
-pascal_to_camel = \str ->
-    segments = Str.to_utf8(str)
-    when segments is
-        [a, .. as rest] ->
-            first = to_lowercase(a)
-            rest |> List.prepend(first) |> Str.from_utf8 |> crash_on_bad_utf8_error
-
-        _ -> str
-
-expect pascal_to_camel("PascalCaseString") == "pascalCaseString"
-
-kebab_to_camel : Str -> Str
-kebab_to_camel = \str ->
-    segments = Str.split_on(str, "-")
-    when segments is
-        [first, .. as rest] ->
-            rest
-            |> List.map(uppercase_first)
-            |> List.prepend(first)
-            |> Str.join_with("")
-
-        _ -> str
-
-expect kebab_to_camel("kebab-case-string") == "kebabCaseString"
-
-camel_to_pascal : Str -> Str
-camel_to_pascal = \str ->
-    segments = Str.to_utf8(str)
-    when segments is
-        [a, .. as rest] ->
-            first = to_uppercase(a)
-            rest |> List.prepend(first) |> Str.from_utf8 |> crash_on_bad_utf8_error
-
-        _ -> str
-
-expect camel_to_pascal("someCaseString") == "SomeCaseString"
-
-camel_to_kebeb : Str -> Str
-camel_to_kebeb = \str ->
-    rest = Str.to_utf8(str)
-    taken = List.with_capacity(List.len(rest))
-
-    camel_to_kebab_help({ taken, rest })
-    |> .taken
-    |> Str.from_utf8
-    |> crash_on_bad_utf8_error
-
-camel_to_kebab_help : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
-camel_to_kebab_help = \{ taken, rest } ->
-    when rest is
-        [] -> { taken, rest }
-        [a, ..] if is_upper_case(a) ->
-            camel_to_kebab_help(
-                {
-                    taken: List.concat(taken, ['-', to_lowercase(a)]),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-
-        [a, ..] ->
-            camel_to_kebab_help(
-                {
-                    taken: List.append(taken, a),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-
-expect camel_to_kebeb("someCaseString") == "some-case-string"
-
-camel_to_snake : Str -> Str
-camel_to_snake = \str ->
-    rest = Str.to_utf8(str)
-    taken = List.with_capacity(List.len(rest))
-
-    camel_to_snake_help({ taken, rest })
-    |> .taken
-    |> Str.from_utf8
-    |> crash_on_bad_utf8_error
-
-camel_to_snake_help : { taken : List U8, rest : List U8 } -> { taken : List U8, rest : List U8 }
-camel_to_snake_help = \{ taken, rest } ->
-    when rest is
-        [] -> { taken, rest }
-        [a, ..] if is_upper_case(a) ->
-            camel_to_snake_help(
-                {
-                    taken: List.concat(taken, ['_', to_lowercase(a)]),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-
-        [a, ..] ->
-            camel_to_snake_help(
-                {
-                    taken: List.append(taken, a),
-                    rest: List.drop_first(rest, 1),
-                },
-            )
-
-expect camel_to_snake("someCaseString") == "some_case_string"
-
-uppercase_first : Str -> Str
-uppercase_first = \str ->
-    segments = Str.to_utf8(str)
-    when segments is
-        [a, .. as rest] ->
-            first = to_uppercase(a)
-            rest |> List.prepend(first) |> Str.from_utf8 |> crash_on_bad_utf8_error
-
-        _ -> str
+    (
+        when field_name_mapping is
+            Default -> convert_case(field_name, { from: SnakeCase, to: SnakeCase })
+            SnakeCase -> convert_case(field_name, { from: SnakeCase, to: SnakeCase })
+            PascalCase -> convert_case(field_name, { from: SnakeCase, to: PascalCase })
+            KebabCase -> convert_case(field_name, { from: SnakeCase, to: KebabCase })
+            CamelCase -> convert_case(field_name, { from: SnakeCase, to: CamelCase })
+            Custom(transformation) -> transformation(field_name) |> Result.map_err(CustomError)
+    )
+    |> Result.with_default("")
 
 to_uppercase : U8 -> U8
 to_uppercase = \codeunit ->
@@ -2213,10 +2064,6 @@ to_lowercase = \codeunit ->
         codeunit + 32 # 32 is the difference to the respecive lowercase letters
     else
         codeunit
-
-is_upper_case : U8 -> Bool
-is_upper_case = \codeunit ->
-    'A' <= codeunit && codeunit <= 'Z'
 
 eat_whitespace : List U8 -> List U8
 eat_whitespace = \bytes ->
