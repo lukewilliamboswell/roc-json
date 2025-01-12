@@ -477,7 +477,7 @@ to_yelling_case = \str ->
     Str.to_utf8(str)
     |> List.map(to_uppercase)
     |> Str.from_utf8
-    |> crash_on_bad_utf8_error
+    |> Result.map_err(\_ -> "INVALID UTF8")
 
 encode_tuple : List (Encoder Json) -> Encoder Json
 encode_tuple = \elems ->
@@ -2023,7 +2023,7 @@ from_yelling_case = \str ->
     |> Str.from_utf8
     |> Result.map_err(\_ -> "INVALID UTF8")
 
-expect from_yelling_case("YELLING") == "yelling"
+expect from_yelling_case("YELLING") == Ok("yelling")
 
 # Complex example from IETF RFC 8259 (2017)
 complex_example_json = Str.to_utf8("{\"Image\":{\"Animated\":false,\"Height\":600,\"Ids\":[116,943,234,38793],\"Thumbnail\":{\"Height\":125,\"Url\":\"http:\\/\\/www.example.com\\/image\\/481989943\",\"Width\":100},\"Title\":\"View from 15th Floor\",\"Width\":800}}")
