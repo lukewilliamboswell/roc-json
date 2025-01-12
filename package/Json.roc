@@ -1615,7 +1615,7 @@ expect
 
 # Test decode array of object not skipping missing properties
 expect
-    input = Str.to_utf8("[{\"extraField\":2,\"fieldName\":1}]")
+    input = Str.to_utf8("[{\"extra_field\":2,\"fieldName\":1}]")
 
     decoder = utf8_with({ skip_missing_properties: Bool.false })
 
@@ -1774,7 +1774,7 @@ SkipValueState : [
 
 # Test decode of partial record
 expect
-    input = Str.to_utf8("{\"extraField\":2, \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\":2, \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1785,7 +1785,7 @@ expect
 
 # Test decode of partial record in list additional field last
 expect
-    input = Str.to_utf8("[{\"ownerName\": \"Farmer Joe\", \"extraField\":2}]")
+    input = Str.to_utf8("[{\"owner_name\": \"Farmer Joe\", \"extra_field\":2}]")
     actual : DecodeResult (List { owner_name : Str })
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1796,7 +1796,7 @@ expect
 
 # Test decode of partial record in record partial field last
 expect
-    input = Str.to_utf8("{\"value\": {\"ownerName\": \"Farmer Joe\",\"extraField\":2}}")
+    input = Str.to_utf8("{\"value\": {\"owner_name\": \"Farmer Joe\",\"extra_field\":2}}")
     actual : DecodeResult { value : { owner_name : Str } }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1807,7 +1807,7 @@ expect
 
 # Test decode of partial record in partial record additional fields last
 expect
-    input = Str.to_utf8("{\"value\": {\"ownerName\": \"Farmer Joe\", \"extraField\":2}, \"extraField\":2}")
+    input = Str.to_utf8("{\"value\": {\"owner_name\": \"Farmer Joe\", \"extra_field\":2}, \"extra_field\":2}")
     actual : DecodeResult { value : { owner_name : Str } }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1818,7 +1818,7 @@ expect
 
 # Test decode of partial record with multiple additional fields
 expect
-    input = Str.to_utf8("{\"extraField\":2, \"ownerName\": \"Farmer Joe\", \"extraField2\":2 }")
+    input = Str.to_utf8("{\"extra_field\":2, \"owner_name\": \"Farmer Joe\", \"extra_field2\":2 }")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1829,7 +1829,7 @@ expect
 
 # Test decode of partial record with string value
 expect
-    input = Str.to_utf8("{\"extraField\": \"abc\", \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": \"abc\", \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1840,7 +1840,7 @@ expect
 
 # Test decode of partial record with string value with a comma
 expect
-    input = Str.to_utf8("{\"extraField\": \"a,bc\", \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": \"a,bc\", \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1851,7 +1851,7 @@ expect
 
 # Test decode of partial record with string value with an escaped "
 expect
-    input = Str.to_utf8("{\"extraField\": \"a\\\"bc\", \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": \"a\\\"bc\", \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1862,7 +1862,7 @@ expect
 
 # Test decode of partial record with an array
 expect
-    input = Str.to_utf8("{\"extraField\": [1,2,3], \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": [1,2,3], \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1873,7 +1873,7 @@ expect
 
 # Test decode of partial record with a nested array
 expect
-    input = Str.to_utf8("{\"extraField\": [1,[4,5,[[9],6,7]],3], \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": [1,[4,5,[[9],6,7]],3], \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1884,7 +1884,7 @@ expect
 
 # Test decode of partial record with a nested array with strings inside
 expect
-    input = Str.to_utf8("{\"extraField\": [\"a\", [\"bc]]]def\"]], \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": [\"a\", [\"bc]]]def\"]], \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1895,7 +1895,7 @@ expect
 
 # Test decode of partial record with a nested array with escaped strings inside
 expect
-    input = Str.to_utf8("{\"extraField\": [\"a\", [\"b\\cdef\"]], \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": [\"a\", [\"b\\cdef\"]], \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1906,7 +1906,7 @@ expect
 
 # Test decode of partial record with an object
 expect
-    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6 }, \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": { \"fieldA\": 6 }, \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1917,7 +1917,7 @@ expect
 
 # Test decode of partial record with a nested object
 expect
-    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"abcd\" } }, \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"abcd\" } }, \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1928,7 +1928,7 @@ expect
 
 # Test decode of partial record with a nested object and string
 expect
-    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab}}}}}cd\" } }, \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab}}}}}cd\" } }, \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -1939,7 +1939,7 @@ expect
 
 # Test decode of partial record with a nested object and string ending with an escaped char
 expect
-    input = Str.to_utf8("{\"extraField\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab\\cd\" } }, \"ownerName\": \"Farmer Joe\"}")
+    input = Str.to_utf8("{\"extra_field\": { \"fieldA\": 6, \"nested\": { \"nestField\": \"ab\\cd\" } }, \"owner_name\": \"Farmer Joe\"}")
     actual : DecodeResult { owner_name : Str }
     actual = Decode.from_bytes_partial(input, utf8)
 
@@ -2111,12 +2111,6 @@ eat_whitespace = \bytes ->
 expect eat_whitespace(Str.to_utf8("")) == (Str.to_utf8(""))
 expect eat_whitespace(Str.to_utf8("ABC    ")) == (Str.to_utf8("ABC    "))
 expect eat_whitespace(Str.to_utf8("  \nABC    ")) == (Str.to_utf8("ABC    "))
-
-crash_on_bad_utf8_error : Result Str _ -> Str
-crash_on_bad_utf8_error = \res ->
-    when res is
-        Ok(str) -> str
-        Err(_) -> crash("invalid UTF-8 code units")
 
 null_chars = "null" |> Str.to_utf8
 
