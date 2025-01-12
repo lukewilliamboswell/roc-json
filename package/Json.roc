@@ -139,84 +139,98 @@ FieldNameMapping : [
 num_to_bytes = \n ->
     n |> Num.to_str |> Str.to_utf8
 
+encode_u8 : U8 -> Encoder Json
 encode_u8 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_u16 : U16 -> Encoder Json
 encode_u16 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_u32 : U32 -> Encoder Json
 encode_u32 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_u64 : U64 -> Encoder Json
 encode_u64 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_u128 : U128 -> Encoder Json
 encode_u128 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_i8 : I8 -> Encoder Json
 encode_i8 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_i16 : I16 -> Encoder Json
 encode_i16 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_i32 : I32 -> Encoder Json
 encode_i32 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_i64 : I64 -> Encoder Json
 encode_i64 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_i128 : I128 -> Encoder Json
 encode_i128 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_f32 : F32 -> Encoder Json
 encode_f32 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_f64 : F64 -> Encoder Json
 encode_f64 = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_dec : Dec -> Encoder Json
 encode_dec = \n ->
     Encode.custom(
         \bytes, @Json({}) ->
             List.concat(bytes, num_to_bytes(n)),
     )
 
+encode_bool : Bool -> Encoder Json
 encode_bool = \b ->
     Encode.custom(
         \bytes, @Json({}) ->
@@ -234,6 +248,7 @@ expect
 
     actual == expected
 
+encode_string : Str -> Encoder Json
 encode_string = \str ->
     Encode.custom(
         \bytes, @Json({}) ->
@@ -341,6 +356,7 @@ expect
 
     actual == expected
 
+encode_list : List elem, (elem -> Encoder Json) -> Encoder Json
 encode_list = \lst, encode_elem ->
     Encode.custom(
         \bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
@@ -381,6 +397,7 @@ expect
 
     actual == expected
 
+encode_record : List { key : Str, value : Encoder Json } -> Encoder Json
 encode_record = \fields ->
     Encode.custom(
         \bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
@@ -462,6 +479,7 @@ to_yelling_case = \str ->
     |> Str.from_utf8
     |> crash_on_bad_utf8_error
 
+encode_tuple : List (Encoder Json) -> Encoder Json
 encode_tuple = \elems ->
     Encode.custom(
         \bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
@@ -500,6 +518,7 @@ expect
 
     actual == expected
 
+encode_tag : Str, List (Encoder Json) -> Encoder Json
 encode_tag = \name, payload ->
     Encode.custom(
         \bytes, @Json(json_fmt) ->
@@ -537,6 +556,7 @@ expect
 
     actual == expected
 
+decode_u8 : Decoder U8 Json
 decode_u8 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -555,6 +575,7 @@ expect
     actual = Str.to_utf8("255") |> Decode.from_bytes(utf8)
     actual == Ok(255u8)
 
+decode_u16 : Decoder U16 Json
 decode_u16 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -573,6 +594,7 @@ expect
     actual = Str.to_utf8("65535") |> Decode.from_bytes(utf8)
     actual == Ok(65_535u16)
 
+decode_u32 : Decoder U32 Json
 decode_u32 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -591,6 +613,7 @@ expect
     actual = Str.to_utf8("4000000000") |> Decode.from_bytes(utf8)
     actual == Ok(4_000_000_000u32)
 
+decode_u64 : Decoder U64 Json
 decode_u64 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -609,6 +632,7 @@ expect
     actual = Str.to_utf8("18446744073709551614") |> Decode.from_bytes(utf8)
     actual == Ok(18_446_744_073_709_551_614u64)
 
+decode_u128 : Decoder U128 Json
 decode_u128 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -627,6 +651,7 @@ expect
     actual = Str.to_utf8("1234567") |> Decode.from_bytes_partial(utf8)
     actual.result == Ok(1234567u128)
 
+decode_i8 : Decoder I8 Json
 decode_i8 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -645,6 +670,7 @@ expect
     actual = Str.to_utf8("-125") |> Decode.from_bytes_partial(utf8)
     actual.result == Ok(-125i8)
 
+decode_i16 : Decoder I16 Json
 decode_i16 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -663,6 +689,7 @@ expect
     actual = Str.to_utf8("-32768") |> Decode.from_bytes_partial(utf8)
     actual.result == Ok(-32_768i16)
 
+decode_i32 : Decoder I32 Json
 decode_i32 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -681,6 +708,7 @@ expect
     actual = Str.to_utf8("-2147483648") |> Decode.from_bytes_partial(utf8)
     actual.result == Ok(-2_147_483_648i32)
 
+decode_i64 : Decoder I64 Json
 decode_i64 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -699,6 +727,7 @@ expect
     actual = Str.to_utf8("-9223372036854775808") |> Decode.from_bytes_partial(utf8)
     actual.result == Ok(-9_223_372_036_854_775_808i64)
 
+decode_i128 : Decoder I128 Json
 decode_i128 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -712,6 +741,7 @@ decode_i128 = Decode.custom(
         { result, rest },
 )
 
+decode_f32 : Decoder F32 Json
 decode_f32 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -733,6 +763,7 @@ expect
 
     Result.with_default(num_str, "") == "0.0001234"
 
+decode_f64 : Decoder F64 Json
 decode_f64 = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -754,6 +785,7 @@ expect
 
     Result.with_default(num_str, "") == "0.0001234"
 
+decode_dec : Decoder Dec Json
 decode_dec = Decode.custom(
     \bytes, @Json({}) ->
         { taken, rest } = take_json_number(bytes)
@@ -774,6 +806,7 @@ expect
 
     actual.result == Ok(12.0034dec)
 
+decode_bool : Decoder Bool Json
 decode_bool = Decode.custom(
     \bytes, @Json({}) ->
         when bytes is
@@ -794,6 +827,7 @@ expect
     expected = Ok(Bool.false)
     actual.result == expected
 
+decode_tuple : state, (state, U64 -> [Next (Decoder state Json), TooLong]), (state -> Result val DecodeError) -> Decoder val Json where fmt implements DecoderFormatting
 decode_tuple = \initial_state, step_elem, finalizer ->
     Decode.custom(
         \initial_bytes, json_fmt ->
@@ -1097,6 +1131,7 @@ expect
 #
 # Note that decode_str does not handle leading whitespace, any whitespace must be
 # handled in json list or record decodin.
+decode_string : Decoder Str Json
 decode_string = Decode.custom(
     \bytes, @Json({}) ->
 
@@ -1430,6 +1465,7 @@ expect
 
 # JSON ARRAYS ------------------------------------------------------------------
 
+decode_list : Decoder elem Json -> Decoder (List elem) Json
 decode_list = \elem_decoder ->
     Decode.custom(
         \bytes, json_fmt ->
@@ -1592,6 +1628,7 @@ expect
 
 # JSON OBJECTS -----------------------------------------------------------------
 
+decode_record : state, (state, Str -> [Keep (Decoder state Json), Skip]), (state, Json -> Result val DecodeError) -> Decoder val Json
 decode_record = \initial_state, step_field, finalizer ->
     Decode.custom(
         \bytes, @Json({ field_name_mapping, skip_missing_properties, null_decode_as_empty, empty_encode_as_null }) ->
