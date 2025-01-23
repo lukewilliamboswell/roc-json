@@ -9,3 +9,6 @@ examples/http-get-json
 generated-docs/
 
 ci/rust_http_server/target/
+
+*.tar.br
+*.tar.gz
