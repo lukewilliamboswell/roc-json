@@ -8,20 +8,15 @@ import json.Json
 import "data.json" as request_body : List U8
 
 main! = |_args|
-    decoder = Json.utf8_with({})
 
-    decoded : Decode.DecodeResult (List DataRequest)
-    decoded = Decode.from_bytes_partial(request_body, decoder)
+    list : List DataRequest
+    list = Decode.from_bytes(request_body, Json.utf8)?
 
-    when decoded.result is
-        Ok(list) ->
-            try(Stdout.line!("Successfully decoded list"))
+    Stdout.line!("Successfully decoded list")?
 
-            when List.get(list, 0) is
-                Ok(rec) -> Stdout.line!("Name of first person is: ${rec.lastname}")
-                Err(_) -> Stdout.line!("Error occurred in List.get")
-
-        Err(TooShort) -> Stdout.line!("A TooShort error occurred")
+    when List.get(list, 0) is
+        Ok(rec) -> Stdout.line!("Name of first person is: ${rec.lastname}")
+        Err(_) -> Stdout.line!("Error occurred in List.get")
 
 DataRequest : {
     id : I64,
@@ -31,7 +26,3 @@ DataRequest : {
     gender : Str,
     ipaddress : Str,
 }
-
-# =>
-# Successfully decoded list
-# Name of first person is: Penddreth

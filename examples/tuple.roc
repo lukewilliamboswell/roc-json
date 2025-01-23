@@ -9,12 +9,12 @@ import json.Json
 main! = |_args|
     bytes = Str.to_utf8("[ [ 123,\n\"apples\" ], [  456,  \"oranges\" ]]")
 
-    decoded : Decode.DecodeResult (List FruitCount)
-    decoded = Decode.from_bytes_partial(bytes, Json.utf8)
+    tuple : List FruitCount
+    tuple = Decode.from_bytes(bytes, Json.utf8)?
 
-    when decoded.result is
-        Ok(tuple) -> Stdout.line!("Successfully decoded tuple, got ${to_str(tuple)}")
-        Err(_) -> crash("Error, failed to decode image")
+    Stdout.line!("Successfully decoded tuple, got ${to_str(tuple)}")?
+
+    Ok({})
 
 FruitCount : (U32, Str)
 

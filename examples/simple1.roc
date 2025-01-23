@@ -11,12 +11,12 @@ main! = |_args|
 
     decoder = Json.utf8_with({ field_name_mapping: PascalCase })
 
-    decoded : Decode.DecodeResult ImageRequest
-    decoded = Decode.from_bytes_partial(request_body, decoder)
+    record : ImageRequest
+    record = Decode.from_bytes(request_body, decoder)?
 
-    when decoded.result is
-        Ok(record) -> Stdout.line!("Successfully decoded image, title:\"${record.image.title}\"")
-        Err(_) -> crash("Error, failed to decode image")
+    Stdout.line!("Successfully decoded image, title:\"${record.image.title}\"")?
+
+    Ok({})
 
 ImageRequest : {
     image : {
