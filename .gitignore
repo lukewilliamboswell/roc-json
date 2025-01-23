@@ -2,5 +2,10 @@ examples/optional
 examples/simple1
 examples/simple2
 examples/tuple
+examples/http-get-json
+
 .DS_Store
+
 generated-docs/
+
+ci/rust_http_server/target/

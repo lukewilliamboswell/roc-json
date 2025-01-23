@@ -2,7 +2,10 @@
   description = "json package devShell flake";
 
   inputs = {
+
+    # TODO restore when https://github.com/roc-lang/roc/pull/7463 lands in main
     roc.url = "github:roc-lang/roc";
+
     nixpkgs.follows = "roc/nixpkgs";
 
     # to easily make configs for multiple architectures
@@ -23,11 +26,13 @@
         darwinInputs = with pkgs;
           lib.optionals stdenv.isDarwin
           (with pkgs.darwin.apple_sdk.frameworks; [
+            pkgs.libiconv
           ]);
 
         sharedInputs = (with pkgs; [
           expect
           rocPkgs.cli
+          simple-http-server
         ]);
       in {
 

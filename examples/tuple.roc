@@ -1,25 +1,25 @@
-app [main] {
-    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.15.0/SlwdbJ-3GR7uBWQo6zlmYWNYOxnvo8r6YABXD-45UOw.tar.br",
+app [main!] {
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.19.0/bi5zubJ-_Hva9vxxPq4kNx4WHX6oFs8OP6Ad0tCYlrY.tar.br",
     json: "../package/main.roc", # use release URL (ends in tar.br) for local example, see github.com/lukewilliamboswell/roc-json/releases
 }
 
 import cli.Stdout
 import json.Json
 
-main =
-    bytes = Str.toUtf8 "[ [ 123,\n\"apples\" ], [  456,  \"oranges\" ]]"
+main! = |_args|
+    bytes = Str.to_utf8("[ [ 123,\n\"apples\" ], [  456,  \"oranges\" ]]")
 
-    decoded : Decode.DecodeResult (List FruitCount)
-    decoded = Decode.fromBytesPartial bytes Json.utf8
+    tuple : List FruitCount
+    tuple = Decode.from_bytes(bytes, Json.utf8)?
 
-    when decoded.result is
-        Ok tuple -> Stdout.line! "Successfully decoded tuple, got $(toStr tuple)"
-        Err _ -> crash "Error, failed to decode image"
+    Stdout.line!("Successfully decoded tuple, got ${to_str(tuple)}")?
+
+    Ok({})
 
 FruitCount : (U32, Str)
 
-toStr : List FruitCount -> Str
-toStr = \fcs ->
+to_str : List FruitCount -> Str
+to_str = |fcs|
     fcs
-    |> List.map \(count, fruit) -> "$(fruit):$(Num.toStr count)"
-    |> Str.joinWith ", "
+    |> List.map(|(count, fruit)| "${fruit}:${Num.to_str(count)}")
+    |> Str.join_with(", ")

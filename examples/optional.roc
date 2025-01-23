@@ -1,5 +1,5 @@
-app [main] {
-    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.15.0/SlwdbJ-3GR7uBWQo6zlmYWNYOxnvo8r6YABXD-45UOw.tar.br",
+app [main!] {
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.19.0/bi5zubJ-_Hva9vxxPq4kNx4WHX6oFs8OP6Ad0tCYlrY.tar.br",
     json: "../package/main.roc", # use release URL (ends in tar.br) for local example, see github.com/lukewilliamboswell/roc-json/releases
 }
 
@@ -7,29 +7,36 @@ import cli.Stdout
 import json.Json
 import json.OptionOrNull exposing [OptionOrNull]
 
-Object : { firstName : Str, lastName : OptionOrNull Str }
+Object : { first_name : Str, last_name : OptionOrNull Str }
 
-main =
-    noneObj : Object
-    noneObj = { firstName: "Luke", lastName: OptionOrNull.none {} }
-    nullObj : Object
-    nullObj = { firstName: "Luke", lastName: OptionOrNull.null {} }
-    someObj : Object
-    someObj = { firstName: "Luke", lastName: OptionOrNull.some "Boswell" }
+main! = |_args|
 
-    # noneJson == {"firstName":"Luke",}
-    noneJson = Encode.toBytes noneObj (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { record: Bool.false } })
-    Stdout.line! (noneJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
+    # Demonstrate encoding an object with an Optional field
+    none_obj : Object
+    none_obj = { first_name: "Luke", last_name: OptionOrNull.none({}) }
 
-    # nullNoneJson == {"firstName":"Luke","lastName":null}
-    nullNoneJson = Encode.toBytes noneObj (Json.utf8With { emptyEncodeAsNull: Json.encodeAsNullOption { record: Bool.true } })
-    Stdout.line! (nullNoneJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
+    # none_json == {"first_name":"Luke",}
+    none_json = Encode.to_bytes(none_obj, Json.utf8_with({ empty_encode_as_null: Json.encode_as_null_option({ record: Bool.false }) }))
+    Stdout.line!(Str.from_utf8(none_json) ?? "Failed to encode JSON")?
 
-    # nullJson == {"firstName":"Luke","lastName":null}
-    nullJson = Encode.toBytes nullObj Json.utf8
-    Stdout.line! (nullJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
+    # Demonstrate encoding an object with an Nullable field
+    null_obj : Object
+    null_obj = { first_name: "Luke", last_name: OptionOrNull.null({}) }
 
-    # someJson == {"firstName":"Luke","lastName":"Boswell"}
-    someJson = Encode.toBytes someObj Json.utf8
-    Stdout.line (someJson |> Str.fromUtf8 |> Result.withDefault "Failed to encode JSON")
+    # null_none_json == {"first_name":"Luke","last_name":null}
+    null_none_json = Encode.to_bytes(none_obj, Json.utf8_with({ empty_encode_as_null: Json.encode_as_null_option({ record: Bool.true }) }))
+    Stdout.line!(Str.from_utf8(null_none_json) ?? "Failed to encode JSON")?
 
+    # null_json == {"first_name":"Luke","last_name":null}
+    null_json = Encode.to_bytes(null_obj, Json.utf8)
+    Stdout.line!(Str.from_utf8(null_json) ?? "Failed to encode JSON")?
+
+    # Demonstrate encoding an object with a Some field
+    some_obj : Object
+    some_obj = { first_name: "Luke", last_name: OptionOrNull.some("Boswell") }
+
+    # some_json == {"first_name":"Luke","last_name":"Boswell"}
+    some_json = Encode.to_bytes(some_obj, Json.utf8)
+    Stdout.line!(Str.from_utf8(some_json) ?? "Failed to encode JSON")?
+
+    Ok({})
