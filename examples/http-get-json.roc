@@ -1,6 +1,5 @@
 app [main!] {
-    # TODO restore with basic-cli release
-    pf: platform "../../basic-cli/platform/main.roc",
+    pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.19.0/bi5zubJ-_Hva9vxxPq4kNx4WHX6oFs8OP6Ad0tCYlrY.tar.br",
     json: "../package/main.roc", # use release URL (ends in tar.br) for local example, see github.com/lukewilliamboswell/roc-json/releases
 }
 
@@ -11,7 +10,7 @@ import pf.Stdout
 import json.Json
 
 # HTTP GET request with easy decoding to json
-main! = \_args ->
+main! = |_args|
 
     # Easy decoding/deserialization of { "foo": "something" } into a Roc var
     { foo } = Http.get!("http://localhost:8000", Json.utf8)?

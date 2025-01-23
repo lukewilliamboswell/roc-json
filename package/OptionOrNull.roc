@@ -20,29 +20,29 @@ OptionOrNull val := [Some val, None, Null]
     ]
 
 ## Missing field
-none = \{} -> @OptionOrNull(None)
+none = |{}| @OptionOrNull(None)
 ## Null
-null = \{} -> @OptionOrNull(Null)
+null = |{}| @OptionOrNull(Null)
 ## Some value
-some = \val -> @OptionOrNull(Some(val))
+some = |val| @OptionOrNull(Some(val))
 
 ## Get option internals.
 ## For access to convinence methods and error accumulation you may want `Option.get_result`
-get = \@OptionOrNull(val) -> val
+get = |@OptionOrNull(val)| val
 
 ## Option as a result
-get_result = \@OptionOrNull(val) ->
+get_result = |@OptionOrNull(val)|
     when val is
         Some(v) -> Ok(v)
         e -> Err(e)
 
-from = \val -> @OptionOrNull(val)
+from = |val| @OptionOrNull(val)
 
 null_chars = "null" |> Str.to_utf8
 
-to_encoder_res = \@OptionOrNull(val) ->
+to_encoder_res = |@OptionOrNull(val)|
     Encode.custom(
-        \bytes, fmt ->
+        |bytes, fmt|
             when val is
                 Some(contents) -> bytes |> Encode.append(contents, fmt)
                 None -> bytes
@@ -50,7 +50,7 @@ to_encoder_res = \@OptionOrNull(val) ->
     )
 
 decoder_res = Decode.custom(
-    \bytes, fmt ->
+    |bytes, fmt|
         when bytes is
             [] -> { result: Ok(none({})), rest: [] }
             ['n', 'u', 'l', 'l', .. as rest] -> { result: Ok(null({})), rest: rest }
@@ -61,7 +61,7 @@ decoder_res = Decode.custom(
 )
 
 ## Used to indicate to roc highlighting that a string is json
-json = \a -> a
+json = |a| a
 
 OptionTest : { name : OptionOrNull Str, last_name : OptionOrNull Str, age : U8 }
 expect

@@ -1,6 +1,5 @@
 app [main!] {
-    # TODO restore with basic-cli release
-    cli: platform "../../basic-cli/platform/main.roc",
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.19.0/bi5zubJ-_Hva9vxxPq4kNx4WHX6oFs8OP6Ad0tCYlrY.tar.br",
     json: "../package/main.roc", # use release URL (ends in tar.br) for local example, see github.com/lukewilliamboswell/roc-json/releases
 }
 
@@ -8,7 +7,7 @@ import cli.Stdout
 import json.Json
 import "data.json" as request_body : List U8
 
-main! = \_args ->
+main! = |_args|
     decoder = Json.utf8_with({})
 
     decoded : Decode.DecodeResult (List DataRequest)

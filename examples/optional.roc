@@ -1,6 +1,5 @@
 app [main!] {
-    # TODO restore with basic-cli release
-    cli: platform "../../basic-cli/platform/main.roc",
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.19.0/bi5zubJ-_Hva9vxxPq4kNx4WHX6oFs8OP6Ad0tCYlrY.tar.br",
     json: "../package/main.roc", # use release URL (ends in tar.br) for local example, see github.com/lukewilliamboswell/roc-json/releases
 }
 
@@ -10,7 +9,7 @@ import json.OptionOrNull exposing [OptionOrNull]
 
 Object : { first_name : Str, last_name : OptionOrNull Str }
 
-main! = \_args ->
+main! = |_args|
     none_obj : Object
     none_obj = { first_name: "Luke", last_name: OptionOrNull.none({}) }
     null_obj : Object

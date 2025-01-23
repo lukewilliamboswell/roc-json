@@ -17,10 +17,10 @@ Format : [
 
 ## Convert an ASCII string between various formats, e.g. `camelCase` -> `snake_case` -> `kebab-case` -> `PascalCase`
 convert_case : Str, { from : Format, to : Format } -> Result Str [NotASCII]
-convert_case = \str, config ->
+convert_case = |str, config|
 
     # confirm Str is ASCII
-    if Str.to_utf8(str) |> List.all(\b -> b >= 0 && b <= 127) then
+    if Str.to_utf8(str) |> List.all(|b| b >= 0 and b <= 127) then
         when (config.from, config.to) is
             (CamelCase, CamelCase)
             | (KebabCase, KebabCase)
@@ -33,12 +33,12 @@ convert_case = \str, config ->
             (KebabCase, SnakeCase) -> Ok(kebab_to_snake(str))
             (KebabCase, CamelCase) -> Ok(kebab_to_camel(str))
             (KebabCase, PascalCase) -> Ok(kebab_to_pascal(str))
-            (PascalCase, SnakeCase) -> pascal_to_snake(str) |> Result.map_err(\_ -> NotASCII)
-            (PascalCase, CamelCase) -> pascal_to_camel(str) |> Result.map_err(\_ -> NotASCII)
-            (PascalCase, KebabCase) -> pascal_to_kebab(str) |> Result.map_err(\_ -> NotASCII)
-            (CamelCase, SnakeCase) -> camel_to_snake(str) |> Result.map_err(\_ -> NotASCII)
-            (CamelCase, PascalCase) -> camel_to_pascal(str) |> Result.map_err(\_ -> NotASCII)
-            (CamelCase, KebabCase) -> camel_to_kebeb(str) |> Result.map_err(\_ -> NotASCII)
+            (PascalCase, SnakeCase) -> pascal_to_snake(str) |> Result.map_err(|_| NotASCII)
+            (PascalCase, CamelCase) -> pascal_to_camel(str) |> Result.map_err(|_| NotASCII)
+            (PascalCase, KebabCase) -> pascal_to_kebab(str) |> Result.map_err(|_| NotASCII)
+            (CamelCase, SnakeCase) -> camel_to_snake(str) |> Result.map_err(|_| NotASCII)
+            (CamelCase, PascalCase) -> camel_to_pascal(str) |> Result.map_err(|_| NotASCII)
+            (CamelCase, KebabCase) -> camel_to_kebeb(str) |> Result.map_err(|_| NotASCII)
     else
         Err(NotASCII)
 
@@ -76,7 +76,7 @@ expect convert_case("föoBar", { from: CamelCase, to: SnakeCase }) == Err(NotASC
 expect convert_case("fooBAR", { from: CamelCase, to: SnakeCase }) == Ok("foo_bar")
 
 pascal_to_kebab : Str -> Result Str _
-pascal_to_kebab = \str ->
+pascal_to_kebab = |str|
 
     segments : List Str
     segments = split_pascal(str)?
@@ -87,13 +87,13 @@ pascal_to_kebab = \str ->
     |> Ok
 
 kebab_to_pascal : Str -> Str
-kebab_to_pascal = \str ->
+kebab_to_pascal = |str|
     Str.split_on(str, "-")
     |> List.keep_oks(uppercase_first_ascii)
     |> Str.join_with("")
 
 pascal_to_snake : Str -> Result Str _
-pascal_to_snake = \str ->
+pascal_to_snake = |str|
 
     segments : List Str
     segments = split_pascal(str)?
@@ -104,7 +104,7 @@ pascal_to_snake = \str ->
     |> Ok
 
 snake_to_camel : Str -> Str
-snake_to_camel = \str ->
+snake_to_camel = |str|
     when Str.split_on(str, "_") is
         [first, .. as rest] ->
             rest
@@ -115,21 +115,21 @@ snake_to_camel = \str ->
         _ -> str
 
 snake_to_kebab : Str -> Str
-snake_to_kebab = \str ->
+snake_to_kebab = |str|
     Str.join_with(Str.split_on(str, "_"), "-")
 
 kebab_to_snake : Str -> Str
-kebab_to_snake = \str ->
+kebab_to_snake = |str|
     Str.join_with(Str.split_on(str, "-"), "_")
 
 snake_to_pascal : Str -> Str
-snake_to_pascal = \str ->
+snake_to_pascal = |str|
     Str.split_on(str, "_")
     |> List.keep_oks(uppercase_first_ascii)
     |> Str.join_with("")
 
 pascal_to_camel : Str -> Result Str _
-pascal_to_camel = \str ->
+pascal_to_camel = |str|
     when Str.to_utf8(str) is
         [first, .. as rest] ->
             rest
@@ -139,7 +139,7 @@ pascal_to_camel = \str ->
         _ -> Ok(str)
 
 kebab_to_camel : Str -> Str
-kebab_to_camel = \str ->
+kebab_to_camel = |str|
     when Str.split_on(str, "-") is
         [first, .. as rest] ->
             List.keep_oks(rest, uppercase_first_ascii)
@@ -149,7 +149,7 @@ kebab_to_camel = \str ->
         _ -> str
 
 camel_to_pascal : Str -> Result Str _
-camel_to_pascal = \str ->
+camel_to_pascal = |str|
     when Str.to_utf8(str) is
         [first, .. as rest] ->
             rest
@@ -159,7 +159,7 @@ camel_to_pascal = \str ->
         _ -> Ok(str)
 
 camel_to_kebeb : Str -> Result Str _
-camel_to_kebeb = \str ->
+camel_to_kebeb = |str|
 
     segments : List Str
     segments = split_camel(str)?
@@ -170,7 +170,7 @@ camel_to_kebeb = \str ->
     |> Ok
 
 camel_to_snake : Str -> Result Str _
-camel_to_snake = \str ->
+camel_to_snake = |str|
     segments : List Str
     segments = split_camel(str)?
 
@@ -180,52 +180,52 @@ camel_to_snake = \str ->
     |> Ok
 
 uppercase_first_ascii : Str -> Result Str _
-uppercase_first_ascii = \str ->
+uppercase_first_ascii = |str|
     when Str.to_utf8(str) is
         [first, .. as rest] -> Str.from_utf8(List.prepend(rest, to_uppercase(first)))
         _ -> Ok(str)
 
 to_uppercase : U8 -> U8
-to_uppercase = \byte ->
-    if 'a' <= byte && byte <= 'z' then
+to_uppercase = |byte|
+    if 'a' <= byte and byte <= 'z' then
         # 32 is the difference to the respecive uppercase letters
         byte - (32)
     else
         byte
 
 lowercase_all_str : List Str -> List Str
-lowercase_all_str = \strs ->
+lowercase_all_str = |strs|
     List.keep_oks(
         strs,
-        \str ->
+        |str|
             bytes = Str.to_utf8(str)
             Str.from_utf8(List.map(bytes, to_lowercase)),
     )
 
 to_lowercase : U8 -> U8
-to_lowercase = \byte ->
-    if 'A' <= byte && byte <= 'Z' then
+to_lowercase = |byte|
+    if 'A' <= byte and byte <= 'Z' then
         # 32 is the difference to the respecive lowercase letters
         byte + 32
     else
         byte
 
 is_lower_case : U8 -> Bool
-is_lower_case = \byte ->
-    'a' <= byte && byte <= 'z'
+is_lower_case = |byte|
+    'a' <= byte and byte <= 'z'
 
 is_digit : U8 -> Bool
-is_digit = \byte ->
-    '0' <= byte && byte <= '9'
+is_digit = |byte|
+    '0' <= byte and byte <= '9'
 
 is_upper_case : U8 -> Bool
-is_upper_case = \byte ->
-    'A' <= byte && byte <= 'Z'
+is_upper_case = |byte|
+    'A' <= byte and byte <= 'Z'
 
 # CamelCase is also known as "Lower" CamelCase
 # Input must be ASCII -- not checked here as this is an internal helper
 split_camel : Str -> Result (List Str) [InvalidCamel]
-split_camel = \str ->
+split_camel = |str|
     ascii_bytes = Str.to_utf8(str)
     ascii_bytes_len = List.len(ascii_bytes)
 
@@ -241,7 +241,7 @@ split_camel = \str ->
     slices =
         segment_indexes?
         |> List.map(
-            \{ start, len } ->
+            |{ start, len }|
                 List.sublist(ascii_bytes, { start, len }),
         )
         |> List.keep_oks(Str.from_utf8)
@@ -251,7 +251,7 @@ split_camel = \str ->
 # PascalCase is also known as "Upper" CamelCase
 # Input must be ASCII -- not checked here as this is an internal helper
 split_pascal : Str -> Result (List Str) [InvalidPascal]
-split_pascal = \str ->
+split_pascal = |str|
     ascii_bytes = Str.to_utf8(str)
     ascii_bytes_len = List.len(ascii_bytes)
 
@@ -267,7 +267,7 @@ split_pascal = \str ->
     slices =
         segment_indexes?
         |> List.map(
-            \{ start, len } ->
+            |{ start, len }|
                 List.sublist(ascii_bytes, { start, len }),
         )
         |> List.keep_oks(Str.from_utf8)
@@ -284,7 +284,7 @@ SplitCaseState : [
 ]
 
 split_camel_help : SplitCaseState, U8, U64 -> SplitCaseState
-split_camel_help = \state, byte, index ->
+split_camel_help = |state, byte, index|
     when state is
         Invalid -> Invalid
         StartCamel if is_lower_case(byte) -> Lower(index, [])

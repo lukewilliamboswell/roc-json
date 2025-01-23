@@ -12,12 +12,12 @@ Option val := [None, Some val]
             to_encoder: option_to_encode,
         },
     ]
-none = \{} -> @Option(None)
-some = \a -> @Option(Some(a))
+none = |{}| @Option(None)
+some = |a| @Option(Some(a))
 
-option_to_encode = \@Option(val) ->
+option_to_encode = |@Option(val)|
     Encode.custom(
-        \bytes, fmt ->
+        |bytes, fmt|
             when val is
                 Some(contents) -> bytes |> Encode.append(contents, fmt)
                 None -> bytes,
@@ -109,7 +109,7 @@ expect
     expected == encoded
 
 option_decode = Decode.custom(
-    \bytes, fmt ->
+    |bytes, fmt|
         if bytes |> List.len == 0 then
             { result: Ok(@Option(None)), rest: [] }
         else

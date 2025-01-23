@@ -15,30 +15,30 @@ Option val := [Some val, None]
         },
     ]
 ## Missing or null
-none = \{} -> @Option(None)
+none = |{}| @Option(None)
 ## A value
-some = \val -> @Option(Some(val))
-get = \@Option(val) -> val
-get_result = \@Option(val) -> val
+some = |val| @Option(Some(val))
+get = |@Option(val)| val
+get_result = |@Option(val)| val
 ## use like `Option.from(Ok(val))`
-from = \val -> @Option(val)
+from = |val| @Option(val)
 ## Convert a result with any `Err` to an Option
 from_result : Result a * -> _
-from_result = \val ->
+from_result = |val|
     when val is
         Ok(a) -> some(a)
         Err(_) -> none({})
 
-to_encoder_res = \@Option(val) ->
+to_encoder_res = |@Option(val)|
     Encode.custom(
-        \bytes, fmt ->
+        |bytes, fmt|
             when val is
                 Some(contents) -> bytes |> Encode.append(contents, fmt)
                 None -> bytes,
     )
 
 decoder_res = Decode.custom(
-    \bytes, fmt ->
+    |bytes, fmt|
         when bytes is
             [] -> { result: Ok(none({})), rest: [] }
             _ ->
@@ -48,7 +48,7 @@ decoder_res = Decode.custom(
 )
 
 ## Used to indicate to roc highlighting that a string is json
-json = \a -> a
+json = |a| a
 
 OptionTest : { name : Str, last_name : Option Str, age : Option U8 }
 expect
