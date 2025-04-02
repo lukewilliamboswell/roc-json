@@ -849,13 +849,39 @@ decode_tuple = |initial_state, step_elem, finalizer|
                 try_decode(
                     decode_attempt,
                     |{ val: new_state, rest: before_comma_or_break }|
-                        { result: comma_result, rest: next_bytes } = comma(before_comma_or_break)
+                        { result: delimiter_result, rest: next_bytes } = comma(before_comma_or_break)
 
-                        when comma_result is
+                        when delimiter_result is
                             Ok({}) -> decode_elems(step_elem, new_state, (index + 1), next_bytes)
                             Err(_) -> { result: Ok(new_state), rest: next_bytes },
                 )
 
+            decode_dict_elems = |stepper, state, index, bytes|
+                decode_attempt =
+                    when stepper(state, index) is
+                        TooLong ->
+                            bytes
+                            |> anything
+                            |> try_decode(
+                                |{ rest: before_colon_or_break }|
+                                    { result: Ok(state), rest: before_colon_or_break },
+                            )
+
+                        Next(decoder) ->
+                            decode_potential_null(eat_whitespace(bytes), decoder, json_fmt)
+
+                try_decode(
+                    decode_attempt,
+                    |{ val: new_state, rest: before_colon_or_break }|
+                        { result: delimiter_result, rest: next_bytes } = 
+                            eat_whitespace(before_colon_or_break)
+                            |> colon
+
+                        when delimiter_result is
+                            Ok({}) -> decode_dict_elems(step_elem, new_state, (index + 1), next_bytes)
+                            Err(_) -> { result: Ok(new_state), rest: next_bytes },
+                )
+                
             initial_bytes
             |> open_bracket
             |> try_decode(
@@ -872,7 +898,23 @@ decode_tuple = |initial_state, step_elem, finalizer|
                                         Err(e) -> { result: Err(e), rest: after_tuple_bytes },
                             ),
                     ),
-            ),
+            )
+            |> |decode_result|
+                when decode_result.result is
+                    Ok(_) -> 
+                        decode_result
+
+                    Err(TooShort) ->
+                        # If decoding a normal tuple fails, try decoding as a k/v -> tuple
+                        decode_dict_elems(step_elem, initial_state, 0, eat_whitespace(initial_bytes))
+                        |> try_decode(
+                            |{ val: end_state_result, rest: after_last_elem_bytes }|
+                                after_tuple_bytes = eat_whitespace(after_last_elem_bytes)
+                                when finalizer(end_state_result) is
+                                    Ok(val) -> { result: Ok(val), rest: after_tuple_bytes }
+                                    Err(e) -> { result: Err(e), rest: after_tuple_bytes },
+                        ),
+
     )
 
 # Test decode of tuple
@@ -890,6 +932,20 @@ expect
 
     actual.result == expected
 
+# Test decode of key-val to tuple
+expect
+    input = Str.to_utf8("\"Key\" : \"Value\"")
+    actual = Decode.from_bytes_partial(input, utf8)
+
+    actual.result == Ok(("Key", "Value"))
+
+# Test decode json object to list of tuples
+expect
+    input = Str.to_utf8("{\"k\":1, \"k2\": 2}")
+    actual = Decode.from_bytes_partial(input, utf8)
+
+    actual.result == Ok([("k", 1), ("k2", 2)])
+
 parse_exact_char : List U8, U8 -> DecodeResult {}
 parse_exact_char = |bytes, char|
     when List.get(bytes, 0) is
@@ -903,6 +959,19 @@ parse_exact_char = |bytes, char|
 
         Err(_) -> { result: Err(TooShort), rest: bytes }
 
+# parse_char_choice : List U8, List U8 -> DecodeResult {}
+# parse_char_choice = |bytes, chars|
+#     when List.get(bytes, 0) is
+#         Ok(c) ->
+#             if
+#                 List.contains(chars, c)
+#             then
+#                 { result: Ok({}), rest: (List.split_at(bytes, 1)).others }
+#             else
+#                 { result: Err(TooShort), rest: bytes }
+
+#         Err(_) -> { result: Err(TooShort), rest: bytes }
+
 open_bracket : List U8 -> DecodeResult {}
 open_bracket = |bytes| parse_exact_char(bytes, '[')
 
@@ -914,6 +983,9 @@ anything = |bytes| { result: Err(TooShort), rest: bytes }
 
 comma : List U8 -> DecodeResult {}
 comma = |bytes| parse_exact_char(bytes, ',')
+
+colon : List U8 -> DecodeResult {}
+colon = |bytes| parse_exact_char(bytes, ':')
 
 try_decode : DecodeResult a, ({ val : a, rest : List U8 } -> DecodeResult b) -> DecodeResult b
 try_decode = |{ result, rest }, mapper|
@@ -1143,12 +1215,17 @@ decode_string = Decode.custom(
             # Remove starting and ending quotation marks, replace unicode
             # escpapes with Roc equivalent, and try to parse RocStr from
             # bytes
+            { start, from_end } = 
+                when List.get(str_bytes, 0) is 
+                    Ok('{') -> { start: 0, from_end: 0 } # decode object as str
+                    _ -> { start: 1, from_end: 2 }
+
             result =
                 str_bytes
                 |> List.sublist(
                     {
-                        start: 1,
-                        len: Num.sub_saturated(List.len(str_bytes), 2),
+                        start,
+                        len: Num.sub_saturated(List.len(str_bytes), from_end),
                     },
                 )
                 |> |bytes_without_quotation_marks|
@@ -1163,6 +1240,12 @@ decode_string = Decode.custom(
                 Err(_) ->
                     { result: Err(TooShort), rest: bytes },
 )
+
+expect
+    input = "{ \"object\": {\"k\": \"v\"} }" |> Str.to_utf8
+    actual = Decode.from_bytes_partial(input, utf8)
+
+    actual.result == Ok({ object: "{\"k\": \"v\"}" })
 
 take_json_string : List U8 -> { taken : List U8, rest : List U8 }
 take_json_string = |bytes|
@@ -1180,9 +1263,12 @@ string_help : StringState, U8 -> [Continue StringState, Break StringState]
 string_help = |state, byte|
     when (state, byte) is
         (Start, b) if b == '"' -> Continue(Chars(1))
+        (Start, b) if b == '{' -> Continue(Object(1))
         (Chars(n), b) if b == '"' -> Break(Finish((n + 1)))
         (Chars(n), b) if b == '\\' -> Continue(Escaped((n + 1)))
         (Chars(n), _) -> Continue(Chars((n + 1)))
+        (Object(n), b) if b == '}' -> Break(Finish((n + 1)))
+        (Object(n), _) -> Continue(Object((n + 1)))
         (Escaped(n), b) if is_escaped_char(b) -> Continue(Chars((n + 1)))
         (Escaped(n), b) if b == 'u' -> Continue(UnicodeA((n + 1)))
         (UnicodeA(n), b) if is_hex(b) -> Continue(UnicodeB((n + 1)))
@@ -1194,6 +1280,7 @@ string_help = |state, byte|
 StringState : [
     Start,
     Chars U64,
+    Object U64,
     Escaped U64,
     UnicodeA U64,
     UnicodeB U64,
@@ -1533,6 +1620,7 @@ array_opening_help = |state, byte|
     when (state, byte) is
         (BeforeOpeningBracket(n), b) if is_whitespace(b) -> Continue(BeforeOpeningBracket((n + 1)))
         (BeforeOpeningBracket(n), b) if b == '[' -> Continue(AfterOpeningBracket((n + 1)))
+        (BeforeOpeningBracket(n), b) if b == '{' -> Continue(AfterOpeningBracket((n + 1)))
         (AfterOpeningBracket(n), b) if is_whitespace(b) -> Continue(AfterOpeningBracket((n + 1)))
         _ -> Break(state)
 
@@ -1542,8 +1630,10 @@ array_closing_help = |state, byte|
         (BeforeNextElemOrClosingBracket(n), b) if is_whitespace(b) -> Continue(BeforeNextElemOrClosingBracket((n + 1)))
         (BeforeNextElemOrClosingBracket(n), b) if b == ',' -> Continue(BeforeNextElement((n + 1)))
         (BeforeNextElemOrClosingBracket(n), b) if b == ']' -> Continue(AfterClosingBracket((n + 1)))
+        (BeforeNextElemOrClosingBracket(n), b) if b == '}' -> Continue(AfterClosingBracket((n + 1)))
         (BeforeNextElement(n), b) if is_whitespace(b) -> Continue(BeforeNextElement((n + 1)))
         (BeforeNextElement(n), b) if b == ']' -> Continue(AfterClosingBracket((n + 1)))
+        (BeforeNextElement(n), b) if b == '}' -> Continue(AfterClosingBracket((n + 1)))
         (AfterClosingBracket(n), b) if is_whitespace(b) -> Continue(AfterClosingBracket((n + 1)))
         _ -> Break(state)
 
