@@ -12,7 +12,7 @@ import json.Json
 ## The initially decoded object - value is a dynamically typed object, decoded as a Str
 DynamicJson : { type : Str, value : Str }
 
-# The final decoded object - dynamically typed value stored as a Tag union
+## The final decoded object - dynamically typed value stored as a Tag union
 Dynamic : { value : [String(Str), Number(U64)] }
 
 dynamic_json =
@@ -69,5 +69,5 @@ main! = |_args|
                     Number(val) ->
                         Stdout.line!("Number: ${Num.to_str(val)}")
             )
-        Err(_) ->
-            Stdout.line!("Error decoding JSON")
+        Err(e) ->
+            Stdout.line!("Error decoding JSON: ${Inspect.to_str(e)}")
