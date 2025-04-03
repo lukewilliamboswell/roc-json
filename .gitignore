@@ -3,6 +3,8 @@ examples/simple1
 examples/simple2
 examples/tuple
 examples/http-get-json
+examples/dict
+examples/dynamic-types
 
 .DS_Store
 
