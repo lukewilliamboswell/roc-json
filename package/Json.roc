@@ -849,9 +849,9 @@ decode_tuple = |initial_state, step_elem, finalizer|
                 try_decode(
                     decode_attempt,
                     |{ val: new_state, rest: before_comma_or_break }|
-                        { result: delimiter_result, rest: next_bytes } = comma(before_comma_or_break)
+                        { result: comma_result, rest: next_bytes } = comma(before_comma_or_break)
 
-                        when delimiter_result is
+                        when comma_result is
                             Ok({}) -> decode_elems(step_elem, new_state, (index + 1), next_bytes)
                             Err(_) -> { result: Ok(new_state), rest: next_bytes },
                 )
@@ -873,11 +873,11 @@ decode_tuple = |initial_state, step_elem, finalizer|
                 try_decode(
                     decode_attempt,
                     |{ val: new_state, rest: before_colon_or_break }|
-                        { result: delimiter_result, rest: next_bytes } = 
+                        { result: colon_result, rest: next_bytes } = 
                             eat_whitespace(before_colon_or_break)
                             |> colon
 
-                        when delimiter_result is
+                        when colon_result is
                             Ok({}) -> decode_dict_elems(step_elem, new_state, (index + 1), next_bytes)
                             Err(_) -> { result: Ok(new_state), rest: next_bytes },
                 )
