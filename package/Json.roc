@@ -1263,12 +1263,14 @@ string_help : StringState, U8 -> [Continue StringState, Break StringState]
 string_help = |state, byte|
     when (state, byte) is
         (Start, b) if b == '"' -> Continue(Chars(1))
-        (Start, b) if b == '{' -> Continue(Object(1))
+        (Start, b) if b == '{' -> Continue(Object((1, 0)))
         (Chars(n), b) if b == '"' -> Break(Finish((n + 1)))
         (Chars(n), b) if b == '\\' -> Continue(Escaped((n + 1)))
         (Chars(n), _) -> Continue(Chars((n + 1)))
-        (Object(n), b) if b == '}' -> Break(Finish((n + 1)))
-        (Object(n), _) -> Continue(Object((n + 1)))
+        (Object((n, d)), b) if b == '}' and d == 0 -> Break(Finish((n + 1)))
+        (Object((n, d)), b) if b == '{' -> Continue(Object((n + 1, d + 1)))
+        (Object((n, d)), b) if b == '}' -> Continue(Object((n + 1, Num.sub_saturated(d, 1))))
+        (Object((n, d)), _) -> Continue(Object(((n + 1), d)))
         (Escaped(n), b) if is_escaped_char(b) -> Continue(Chars((n + 1)))
         (Escaped(n), b) if b == 'u' -> Continue(UnicodeA((n + 1)))
         (UnicodeA(n), b) if is_hex(b) -> Continue(UnicodeB((n + 1)))
@@ -1280,7 +1282,7 @@ string_help = |state, byte|
 StringState : [
     Start,
     Chars U64,
-    Object U64,
+    Object (U64, U64),
     Escaped U64,
     UnicodeA U64,
     UnicodeB U64,
