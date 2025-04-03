@@ -10,7 +10,7 @@ main! = |_args|
     dict = 
         Decode.from_bytes(json_dict, Json.utf8)
         |> Result.map_ok(Dict.from_list)
-        |> Result.with_default(Dict.empty({}))
+        |> Result.map_err(|e| Exit(1, "Error decoding JSON: ${Inspect.to_str(e)}"))?
     when Dict.get(dict, "key_2") is
         Ok(val) -> Stdout.line!("key_2: ${val}")
         Err(_) -> Stdout.line!("key_2: not found")
