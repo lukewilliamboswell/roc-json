@@ -959,19 +959,6 @@ parse_exact_char = |bytes, char|
 
         Err(_) -> { result: Err(TooShort), rest: bytes }
 
-# parse_char_choice : List U8, List U8 -> DecodeResult {}
-# parse_char_choice = |bytes, chars|
-#     when List.get(bytes, 0) is
-#         Ok(c) ->
-#             if
-#                 List.contains(chars, c)
-#             then
-#                 { result: Ok({}), rest: (List.split_at(bytes, 1)).others }
-#             else
-#                 { result: Err(TooShort), rest: bytes }
-
-#         Err(_) -> { result: Err(TooShort), rest: bytes }
-
 open_bracket : List U8 -> DecodeResult {}
 open_bracket = |bytes| parse_exact_char(bytes, '[')
 
