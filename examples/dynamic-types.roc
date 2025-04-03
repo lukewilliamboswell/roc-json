@@ -6,7 +6,13 @@ app [main!] {
 import cli.Stdout
 import json.Json
 
+# Json objects may contain dynamically typed values. These may be decoded (if the stored in an object `{...}`)
+# by first decoding as a Str, then making a second decoding pass on the initial Str value.
+
+## The initially decoded object - value is a dynamically typed object, decoded as a Str
 DynamicJson : { type : Str, value : Str }
+
+# The final decoded object - dynamically typed value stored as a Tag union
 Dynamic : { value : [String(Str), Number(U64)] }
 
 dynamic_json =
