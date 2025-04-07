@@ -1948,6 +1948,17 @@ expect
     result = actual.result
     result == expected
 
+# Test decode of empty records
+expect
+    input = Str.to_utf8("{}")
+    actual : DecodeResult {}
+    actual = Decode.from_bytes_partial(input, utf8)
+
+    expected = Ok({})
+
+    result = actual.result
+    result == expected
+
 object_help : ObjectState, U8 -> [Break ObjectState, Continue ObjectState]
 object_help = |state, byte|
     when (state, byte) is
