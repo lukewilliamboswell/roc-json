@@ -1705,19 +1705,21 @@ decode_record = |initial_state, step_field, finalizer|
                                         { result: Err(TooShort), rest: bytes_after_value },
                         )
 
-            count_bytes_before_first_field =
-                when List.walk_until(bytes, BeforeOpeningBrace(0), object_help) is
-                    ObjectFieldNameStart(n) -> n
-                    _ -> 0
+            when List.walk_until(bytes, BeforeOpeningBrace(0), object_help) is
+                ObjectFieldNameStart(n) if n > 0 ->
+                    bytes_before_first_field = List.drop_first(bytes, n)
+                    # Begin decoding field:value pairs
+                    decode_fields(initial_state, bytes_before_first_field)
 
-            if count_bytes_before_first_field == 0 then
-                # Invalid object, expected opening brace '{' followed by a field
-                { result: Err(TooShort), rest: bytes }
-            else
-                bytes_before_first_field = List.drop_first(bytes, count_bytes_before_first_field)
+                AfterClosingBrace(n) if n > 0 ->
+                    rest = List.drop_first(bytes, n)
+                    when finalizer(initial_state, utf8) is
+                        Ok(value) -> { result: Ok(value), rest }
+                        Err(error) -> { result: Err(error), rest }
 
-                # Begin decoding field:value pairs
-                decode_fields(initial_state, bytes_before_first_field),
+                _ ->
+                    # Invalid object, expected brace '{' followed by a field or '}'
+                    { result: Err(TooShort), rest: bytes },
     )
 
 skip_field_help : SkipValueState, U8 -> [Break SkipValueState, Continue SkipValueState]
@@ -1966,6 +1968,7 @@ object_help = |state, byte|
         (BeforeOpeningBrace(n), b) if b == '{' -> Continue(AfterOpeningBrace((n + 1)))
         (AfterOpeningBrace(n), b) if is_whitespace(b) -> Continue(AfterOpeningBrace((n + 1)))
         (AfterOpeningBrace(n), b) if b == '"' -> Break(ObjectFieldNameStart(n))
+        (AfterOpeningBrace(n), b) if b == '}' -> Continue(AfterClosingBrace(n + 1))
         (BeforeColon(n), b) if is_whitespace(b) -> Continue(BeforeColon((n + 1)))
         (BeforeColon(n), b) if b == ':' -> Continue(AfterColon((n + 1)))
         (AfterColon(n), b) if is_whitespace(b) -> Continue(AfterColon((n + 1)))
